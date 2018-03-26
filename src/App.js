@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import './App.css'
+import * as moment from 'moment'
 
 const firebaseConfig = {
   apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
@@ -10,7 +11,7 @@ const firebaseConfig = {
   messagingSenderId: "918887966885"
 }
 
-const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
+const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
 
 // firebase init
 const firebase = window.firebase
@@ -29,6 +30,8 @@ class App extends Component {
 
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
+    this.dates = this.dates.bind(this)
+    this.render = this.render.bind(this)
   }
 
   // toggle the state of a checkin
@@ -53,13 +56,19 @@ class App extends Component {
   }
 
   render() {
-    return <div className='app'>{this.state.zones
-        ? this.state.zones.map(this.zone)
+    return <div className='app'>
+      {this.state.zones
+        ? <div>
+          {this.dates()}
+          <div className='zones'>
+            {this.state.zones.map(this.zone)}
+          </div>
+        </div>
         : <p>Loading...</p>
       }
       <div className='options'>
-        <span className='checkin col-option' onClick={() => this.addColumn()}>+</span>
-        <span className='checkin col-option' onClick={() => this.removeColumn()}>-</span>
+        <span className='box col-option' onClick={() => this.addColumn()}>+</span>
+        <span className='box col-option' onClick={() => this.removeColumn()}>-</span>
       </div>
     </div>
   }
@@ -72,7 +81,20 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    return <span key={i} className={'checkin checkin' + c} onClick={() => this.changeState(z, i)}></span>
+    return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}></span>
+  }
+
+  dates() {
+    const startDate = moment('20180324')
+    const sampleCheckins = this.state.zones[0].checkins
+
+    return <div className='dates'>
+      <span className='box date'></span>
+      {sampleCheckins.map((checkin, i) => {
+        const date = moment(startDate).add(sampleCheckins.length - i - 1, 'days')
+        return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
+      })}
+    </div>
   }
 }
 
