@@ -1,11 +1,15 @@
 .app {
   text-align: center;
   margin: 50px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .zone {
   font-size: 32px;
   line-height: 0;
+  white-space: nowrap;
 }
 
 .zone-label {
@@ -20,6 +24,7 @@
   height: 50px;
   display: inline-block;
   cursor: pointer;
+  transition: background-color 150ms linear;
 }
 
 .checkin1 { background-color: #58BB8A; }
@@ -29,8 +34,6 @@
 .options {
   color: #DDD;
   font-size: 37px;
-  text-align: left;
-  margin-left: 95px;
 }
 
 .col-option {
