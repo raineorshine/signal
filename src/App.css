@@ -1,0 +1,26 @@
+.app {
+  text-align: center;
+  margin: 50px;
+}
+
+.zone {
+  font-size: 32px;
+  line-height: 0;
+}
+
+.zone-label {
+  margin-right: 20px;
+  margin-top: 27px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.checkin {
+  width: 50px;
+  height: 50px;
+  display: inline-block;
+}
+
+.checkin1 { background-color: #58BB8A; }
+.checkin0 { background-color: #FED666; }
+.checkin-1 { background-color: #E5737C; }
