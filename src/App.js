@@ -1,52 +1,45 @@
 import React, { Component } from 'react'
 import './App.css'
 
-const zones = [
-  {
-    label: '💤',
-    checkins: [1,0,0,0,1,0,-1]
-  },
-  {
-    label: '🥗',
-    checkins: [1,0,0,0,0,0,-1]
-  },
-  {
-    label: '👟',
-    checkins: [0,-0,0,1,1,0,0]
-  },
-  {
-    label: '📿',
-    checkins: [1,-1,0,0,1,0,-1]
-  },
-  {
-    label: '💌',
-    checkins: [1,-1,0,1,1,0,-1]
-  },
-  {
-    label: '🏡',
-    checkins: [0,0,0,1,0,0,0]
-  }
-]
+const firebaseConfig = {
+  apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
+  authDomain: "zonesofprep.firebaseapp.com",
+  databaseURL: "https://zonesofprep.firebaseio.com",
+  projectId: "zonesofprep",
+  storageBucket: "zonesofprep.appspot.com",
+  messagingSenderId: "918887966885"
+}
+
+// firebase init
+const firebase = window.firebase
+firebase.initializeApp(firebaseConfig)
+const zonesRef = firebase.database().ref('zones')
 
 class App extends Component {
   constructor() {
     super()
-    this.state = { zones }
+    this.state = {}
+
+    // get zones data
+    zonesRef.on('value', snapshot => {
+      this.setState({ zones: snapshot.val() })
+    })
 
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
   }
 
+  // toggle the state of a checkin
   changeState(z, i) {
     const value = (z.checkins[i] + 2) % 4 - 1
     z.checkins.splice(i, 1, value)
-    this.setState({ zones: this.state.zones })
+    zonesRef.set(this.state.zones)
   }
 
   render() {
-    return (
-      <div className='app'>{ zones.map(this.zone)}</div>
-    )
+    return <div className='app'>{this.state.zones ?
+      this.state.zones.map(this.zone) : <p>Loading...</p>
+    }</div>
   }
 
   zone(z) {
