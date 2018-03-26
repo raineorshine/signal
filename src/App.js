@@ -40,7 +40,7 @@ class App extends Component {
 
   addColumn() {
     zonesRef.set(this.state.zones.map(z => {
-      z.checkins.unshift(STATE_NULL)
+      z.checkins.unshift(z.checkins[0] !== undefined ? z.checkins[0] : STATE_NULL)
       return z
     }))
   }
