@@ -10,6 +10,8 @@ const firebaseConfig = {
   messagingSenderId: "918887966885"
 }
 
+const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
+
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
@@ -36,10 +38,30 @@ class App extends Component {
     zonesRef.set(this.state.zones)
   }
 
+  addColumn() {
+    zonesRef.set(this.state.zones.map(z => {
+      z.checkins.unshift(STATE_NULL)
+      return z
+    }))
+  }
+
+  removeColumn() {
+    zonesRef.set(this.state.zones.map(z => {
+      z.checkins.shift()
+      return z
+    }))
+  }
+
   render() {
-    return <div className='app'>{this.state.zones ?
-      this.state.zones.map(this.zone) : <p>Loading...</p>
-    }</div>
+    return <div className='app'>{this.state.zones
+        ? this.state.zones.map(this.zone)
+        : <p>Loading...</p>
+      }
+      <div className='options'>
+        <span className='checkin col-option' onClick={() => this.addColumn()}>+</span>
+        <span className='checkin col-option' onClick={() => this.removeColumn()}>-</span>
+      </div>
+    </div>
   }
 
   zone(z) {
