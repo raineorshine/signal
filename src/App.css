@@ -22,6 +22,10 @@
   user-select: none;
 }
 
+.zones {
+  position: relative;
+}
+
 .zone {
   font-size: 32px;
 }
@@ -56,15 +60,25 @@
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
 
-.options {
+.row-options {
+  color: #DDD;
+  position: absolute;
+  bottom: 0;
+  left: -30px;
+}
+
+.col-options {
   color: #DDD;
 }
 
-.col-option {
+.option {
   border: solid 1px #DDD;
-  margin: 10px 5px 10px 0;
   text-align: center;
   cursor: pointer;
   width: 24px;
   height: 24px;
+}
+
+.col-option {
+  margin: 10px 5px 10px 0;
 }

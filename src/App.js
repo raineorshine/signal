@@ -105,13 +105,23 @@ class App extends Component {
     })
   }
 
+  addRow(label) {
+    const sampleCheckins = this.state.zones[0].checkins || []
+    const zones = this.state.zones.concat([
+      {
+        label,
+        checkins: sampleCheckins.concat().fill(STATE_NULL)
+      }
+    ])
+    this.state.userRef.set({ zones })
+  }
+
   removeColumn() {
-    this.state.userRef.set({
-      zones: this.state.zones.map(z => {
-        z.checkins.shift()
-        return z
-      })
+    const zones = this.state.zones.map(z => {
+      z.checkins.shift()
+      return z
     })
+    this.state.userRef.set({ zones })
   }
 
   render() {
@@ -122,11 +132,19 @@ class App extends Component {
             {this.dates()}
             <div className='zones'>
               {this.state.zones.map(this.zone)}
+              <div className='row-options'>
+                <span className='box option row-option' onClick={() => {
+                  const label = prompt('Enter an emoji for the label of your new habit:')
+                  if (label) {
+                    this.addRow(label)
+                  }
+                }}>+</span>
+              </div>
             </div>
-            <div className='options'>
+            <div className='col-options'>
               <span className='box col1'></span>
-              <span className='box col-option' onClick={() => this.addColumn()}>+</span>
-              <span className='box col-option' onClick={() => this.removeColumn()}>-</span>
+              <span className='box option col-option' onClick={() => this.addColumn()}>+</span>
+              <span className='box option col-option' onClick={() => this.removeColumn()}>-</span>
             </div>
           </div>
           : this.state.uid ? <p>Loading data...</p>
