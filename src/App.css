@@ -54,6 +54,7 @@
   cursor: pointer;
 }
 
+.checkin2 { background-color: white; }
 .checkin1 { background-color: #58BB8A; }
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
