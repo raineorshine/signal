@@ -26,16 +26,13 @@
   position: relative;
 }
 
-.zone {
-  font-size: 32px;
-}
-
 .col1 {
-  margin-right: 7px;
+  margin: 0 7px;
 }
 
 .zone-label {
   line-height: 50px;
+  font-size: 32px;
 }
 
 .box {
@@ -50,6 +47,7 @@
 .dates {
   color: #DDD;
   line-height: 65px;
+  margin-left: 90px;
 }
 
 .checkin {
@@ -61,24 +59,38 @@
 .checkin-1 { background-color: #E5737C; }
 
 .row-options {
-  color: #DDD;
   position: absolute;
-  bottom: 0;
-  left: -30px;
-}
-
-.col-options {
-  color: #DDD;
+  bottom: 14px;
+  left: -31px;
 }
 
 .option {
-  border: solid 1px #DDD;
+  color: white;
+  border: solid 1px white;
   text-align: center;
   cursor: pointer;
   width: 24px;
   height: 24px;
+  line-height: 24px;
+}
+
+.zone:hover .option,
+.row-options:hover .option {
+  border: solid 1px #DDD;
+  color: #DDD;
+}
+
+.col-options {
+  margin-left: 25px;
 }
 
 .col-option {
   margin: 10px 5px 10px 0;
+  border: solid 1px #DDD;
+  color: #DDD;
+}
+
+.option-remove-row {
+  position: relative;
+  top: -14px;
 }

@@ -116,6 +116,12 @@ class App extends Component {
     this.state.userRef.set({ zones })
   }
 
+  removeRow(z) {
+    const zones = this.state.zones.concat()
+    zones.splice(zones.indexOf(z), 1)
+    this.state.userRef.set({ zones })
+  }
+
   removeColumn() {
     const zones = this.state.zones.map(z => {
       z.checkins.shift()
@@ -156,6 +162,7 @@ class App extends Component {
 
   zone(z) {
     return <div className='zone' key={z.label}>
+      <span className='box option option-remove-row' onClick={() => this.removeRow(z)}>-</span>
       <span className='box col1 zone-label'>{z.label}</span>
       <span className='checkins'>{z.checkins
         ? z.checkins.map((c, i) => this.checkin(c, i, z))
@@ -173,7 +180,6 @@ class App extends Component {
     const sampleCheckins = this.state.zones[0].checkins || []
 
     return <div className='dates'>
-      <span className='box col1'></span>
       {sampleCheckins.map((checkin, i) => {
         const date = moment(startDate).add(sampleCheckins.length - i - 1, 'days')
         return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
