@@ -57,25 +57,29 @@ class App extends Component {
 
   render() {
     return <div className='app'>
-      {this.state.zones
-        ? <div>
-          {this.dates()}
-          <div className='zones'>
-            {this.state.zones.map(this.zone)}
+      <div className='gradient'></div>
+      <div className='content'>
+        {this.state.zones
+          ? <div>
+            {this.dates()}
+            <div className='zones'>
+              {this.state.zones.map(this.zone)}
+            </div>
+            <div className='options'>
+              <span className='box col1'></span>
+              <span className='box col-option' onClick={() => this.addColumn()}>+</span>
+              <span className='box col-option' onClick={() => this.removeColumn()}>-</span>
+            </div>
           </div>
-        </div>
-        : <p>Loading...</p>
-      }
-      <div className='options'>
-        <span className='box col-option' onClick={() => this.addColumn()}>+</span>
-        <span className='box col-option' onClick={() => this.removeColumn()}>-</span>
+          : <p>Loading...</p>
+        }
       </div>
     </div>
   }
 
   zone(z) {
     return <div className='zone' key={z.label}>
-      <span className='zone-label'>{z.label}</span>
+      <span className='box col1 zone-label'>{z.label}</span>
       <span className='checkins'>{z.checkins.map((c, i) => this.checkin(c, i, z))}</span>
     </div>
   }
@@ -89,7 +93,7 @@ class App extends Component {
     const sampleCheckins = this.state.zones[0].checkins
 
     return <div className='dates'>
-      <span className='box date'></span>
+      <span className='box col1'></span>
       {sampleCheckins.map((checkin, i) => {
         const date = moment(startDate).add(sampleCheckins.length - i - 1, 'days')
         return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>

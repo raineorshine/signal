@@ -1,6 +1,22 @@
 .app {
-  text-align: center;
-  margin: 50px;
+}
+
+.gradient {
+  position: absolute;
+  right: 0;
+  width:  20%;
+  height: 100%;
+  background: -webkit-linear-gradient(right, rgba(255, 255, 255, 1), rgba(255,255,255, 0));
+  z-index: 1;
+}
+
+.content {
+  white-space: nowrap;
+  width: 0;
+  margin: 50px auto;
+  left: -25%;
+  position: relative;
+
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -8,20 +24,20 @@
 
 .zone {
   font-size: 32px;
-  line-height: 0;
-  white-space: nowrap;
+}
+
+.col1 {
+  margin-right: 7px;
 }
 
 .zone-label {
-  margin-right: 20px;
-  margin-top: 27px;
-  display: inline-block;
-  vertical-align: top;
+  line-height: 50px;
 }
 
 .box {
   width: 50px;
   height: 50px;
+  text-align: center;
   display: inline-block;
   transition: background-color 150ms linear;
   vertical-align: bottom;
@@ -42,12 +58,13 @@
 
 .options {
   color: #DDD;
-  font-size: 37px;
 }
 
 .col-option {
   border: solid 1px #DDD;
-  margin: 20px 5px;
+  margin: 10px 5px 10px 0;
   text-align: center;
   cursor: pointer;
+  width: 24px;
+  height: 24px;
 }
