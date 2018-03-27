@@ -12,21 +12,71 @@ const firebaseConfig = {
 }
 
 const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
+const defaultData = {
+  zones: [{
+    checkins : [],
+    label : '💤'
+  }, {
+    checkins : [],
+    label : '🥗'
+  }, {
+    checkins : [],
+    label : '👟'
+  }, {
+    checkins : [],
+    label : '📿'
+  }, {
+    checkins : [],
+    label : '💌'
+  }, {
+    checkins : [],
+    label : '🏡'
+  }, {
+    checkins : [],
+    label : '🔧'
+  }]
+}
 
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
-const zonesRef = firebase.database().ref('zones')
+
+// redirect to sign-in automatically if not signed in
+firebase.auth().getRedirectResult().then(result => {
+  if (!result.user) {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithRedirect(provider)
+  }
+})
 
 class App extends Component {
   constructor() {
     super()
     this.state = {}
 
-    // get zones data
-    zonesRef.on('value', snapshot => {
-      this.setState({ zones: snapshot.val() })
+    // get user id
+    firebase.auth().getRedirectResult().then(result => {
+      if (result.user) {
+        this.setState({ uid: result.user.uid })
+        const userRef = firebase.database().ref('users/' + result.user.uid)
+        this.setState({ userRef })
+
+        // wait for firebase data
+        userRef.on('value', snapshot => {
+          const value = snapshot.val()
+
+          // if no data, initialize with defaults
+          if (!value)  {
+            userRef.set(defaultData)
+          }
+          // if data, setState to render
+          else {
+            this.setState({ zones: value.zones })
+          }
+        })
+      }
     })
+    .catch(console.error)
 
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
@@ -38,29 +88,37 @@ class App extends Component {
   changeState(z, i) {
     const value = (z.checkins[i] + 2) % 4 - 1
     z.checkins.splice(i, 1, value)
-    zonesRef.set(this.state.zones)
+    this.state.userRef.set({ zones: this.state.zones })
   }
 
   addColumn() {
-    zonesRef.set(this.state.zones.map(z => {
-      z.checkins.unshift(z.checkins[0] !== undefined ? z.checkins[0] : STATE_NULL)
-      return z
-    }))
+    this.state.userRef.set({
+      zones: this.state.zones.map(z => {
+        if (z.checkins) {
+          z.checkins.unshift(z.checkins[0] !== undefined ? z.checkins[0] : STATE_NULL)
+        }
+        else {
+          z.checkins = [STATE_NULL]
+        }
+        return z
+      })
+    })
   }
 
   removeColumn() {
-    zonesRef.set(this.state.zones.map(z => {
-      z.checkins.shift()
-      return z
-    }))
+    this.state.userRef.set({
+      zones: this.state.zones.map(z => {
+        z.checkins.shift()
+        return z
+      })
+    })
   }
 
   render() {
     return <div className='app'>
       <div className='gradient'></div>
       <div className='content'>
-        {this.state.zones
-          ? <div>
+        {this.state.zones ? <div>
             {this.dates()}
             <div className='zones'>
               {this.state.zones.map(this.zone)}
@@ -71,7 +129,8 @@ class App extends Component {
               <span className='box col-option' onClick={() => this.removeColumn()}>-</span>
             </div>
           </div>
-          : <p>Loading...</p>
+          : this.state.uid ? <p>Loading data...</p>
+          : <p>Signing in...</p>
         }
       </div>
     </div>
@@ -80,7 +139,10 @@ class App extends Component {
   zone(z) {
     return <div className='zone' key={z.label}>
       <span className='box col1 zone-label'>{z.label}</span>
-      <span className='checkins'>{z.checkins.map((c, i) => this.checkin(c, i, z))}</span>
+      <span className='checkins'>{z.checkins
+        ? z.checkins.map((c, i) => this.checkin(c, i, z))
+        : null
+       }</span>
     </div>
   }
 
@@ -90,7 +152,7 @@ class App extends Component {
 
   dates() {
     const startDate = moment('20180324')
-    const sampleCheckins = this.state.zones[0].checkins
+    const sampleCheckins = this.state.zones[0].checkins || []
 
     return <div className='dates'>
       <span className='box col1'></span>
