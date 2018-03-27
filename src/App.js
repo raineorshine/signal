@@ -14,26 +14,26 @@ const firebaseConfig = {
 const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
 const defaultData = {
   zones: [{
-    checkins : [],
-    label : '💤'
+    checkins: [0],
+    label: '💤'
   }, {
-    checkins : [],
-    label : '🥗'
+    checkins: [0],
+    label: '🥗'
   }, {
-    checkins : [],
-    label : '👟'
+    checkins: [0],
+    label: '👟'
   }, {
-    checkins : [],
-    label : '📿'
+    checkins: [0],
+    label: '📿'
   }, {
-    checkins : [],
-    label : '💌'
+    checkins: [0],
+    label: '💌'
   }, {
-    checkins : [],
-    label : '🏡'
+    checkins: [0],
+    label: '🏡'
   }, {
-    checkins : [],
-    label : '🔧'
+    checkins: [0],
+    label: '🔧'
   }]
 }
 
