@@ -116,6 +116,22 @@ class App extends Component {
     this.state.userRef.set({ zones })
   }
 
+  moveRowDown(z) {
+    const zones = this.state.zones.concat()
+    const i = zones.indexOf(z)
+    zones.splice(i, 1)
+    zones.splice(i+1, 0, z)
+    this.state.userRef.set({ zones })
+  }
+
+  moveRowUp(z) {
+    const zones = this.state.zones.concat()
+    const i = zones.indexOf(z)
+    zones.splice(i, 1)
+    zones.splice(i-1, 0, z)
+    this.state.userRef.set({ zones })
+  }
+
   removeRow(z) {
     const zones = this.state.zones.concat()
     zones.splice(zones.indexOf(z), 1)
@@ -160,9 +176,17 @@ class App extends Component {
     </div>
   }
 
-  zone(z) {
+  zone(z, i) {
     return <div className='zone' key={z.label}>
-      <span className='box option option-remove-row' onClick={() => this.removeRow(z)}>-</span>
+      { i > 0
+        ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
+        : <span className='box option option-row option-hidden'></span>
+      }
+      { i < this.state.zones.length-1
+        ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
+        : <span className='box option option-row option-hidden'></span>
+      }
+      <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
       <span className='box col1 zone-label'>{z.label}</span>
       <span className='checkins'>{z.checkins
         ? z.checkins.map((c, i) => this.checkin(c, i, z))

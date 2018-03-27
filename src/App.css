@@ -14,7 +14,7 @@
   white-space: nowrap;
   width: 0;
   margin: 50px auto;
-  left: -25%;
+  left: -40%;
   position: relative;
 
   -webkit-touch-callout: none;
@@ -47,7 +47,7 @@
 .dates {
   color: #DDD;
   line-height: 65px;
-  margin-left: 90px;
+  margin-left: 157px;
 }
 
 .checkin {
@@ -81,7 +81,7 @@
 }
 
 .col-options {
-  margin-left: 25px;
+  margin-left: 93px; /* sync with .dates */
 }
 
 .col-option {
@@ -90,7 +90,12 @@
   color: #DDD;
 }
 
-.option-remove-row {
+.option-row {
   position: relative;
   top: -14px;
+  margin-left: 5px;
+}
+
+.option-hidden {
+  border-color: white !important;
 }
