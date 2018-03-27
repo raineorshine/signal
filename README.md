@@ -1,5 +1,12 @@
 ![Screenshot](https://raw.githubusercontent.com/raineorshine/zones/master/screenshot.png)
 
+## Deploy
+
+```sh
+npm run build
+firebase deploy
+```
+
 ---
 
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
