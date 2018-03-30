@@ -40,14 +40,8 @@ const defaultData = {
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
-
-// redirect to sign-in automatically if not signed in
-firebase.auth().getRedirectResult().then(result => {
-  if (!result.user) {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithRedirect(provider)
-  }
-})
+window.firebase = firebase
+// firebase.auth().signOut()
 
 const isMobile = () => {
   return navigator.userAgent.match(/Android/i)
@@ -65,14 +59,15 @@ class App extends Component {
     super()
     this.state = {}
 
-    // get user id
-    firebase.auth().getRedirectResult().then(result => {
-      if (result.user) {
-        this.setState({ uid: result.user.uid })
-        const userRef = firebase.database().ref('users/' + result.user.uid)
-        this.setState({ userRef })
+    // check if user is logged in
+    firebase.auth().onAuthStateChanged(user => {
 
-        // wait for firebase data
+      // if logged in, save the user into state
+      if (user) {
+        const userRef = firebase.database().ref('users/' + user.uid)
+        this.setState({ userRef, uid: user.uid })
+
+        // load user data
         userRef.on('value', snapshot => {
           const value = snapshot.val()
 
@@ -86,8 +81,12 @@ class App extends Component {
           }
         })
       }
+      // if not logged in, redirect to OAuth login
+      else {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithRedirect(provider)
+      }
     })
-    .catch(console.error)
 
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
