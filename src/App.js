@@ -12,6 +12,8 @@ const firebaseConfig = {
 }
 
 const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
+
+// raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultData = {
   zones: [{
     checkins: [0],
@@ -27,7 +29,8 @@ const defaultData = {
     label: '📿'
   }, {
     checkins: [0],
-    label: '💌'
+    label: '💌',
+    decay: 1
   }, {
     checkins: [0],
     label: '🏡'
@@ -52,6 +55,26 @@ const isMobile = () => {
     || navigator.userAgent.match(/Windows Phone/i)
     || navigator.userAgent.match(/Opera Mini/i)
     || navigator.userAgent.match(/IEMobile/i)
+}
+
+const promoteWithNull = c => (c + 2) % 4 - 1
+// const demoteWithNull = c => (c + 4) % 4 - 1
+// const promote = c => (c + 2) % 3 - 1
+const demote = c => (c - 2) % 3 + 1
+// const promoteNoWrap = c => c < 1 ? c + 1 : 1
+// const demoteNoWrap = c => c > -1 ? c - 1 : -1
+
+const checkinWithDecay = (checkins, decayRate) => {
+  if (decayRate && checkins[0] > -1) {
+
+    // check if the decay rate has been met
+    // e.g. a zone with a decay rate of 3 will only decay after 3 identical checkins in a row
+    const readyToDecay = checkins.slice(0, decayRate).reduce((next, prev) => next === prev ? next : false) !== false
+    return readyToDecay ? demote(checkins[0]) : checkins[0]
+  }
+  else {
+    return checkins[0]
+  }
 }
 
 class App extends Component {
@@ -96,7 +119,7 @@ class App extends Component {
 
   // toggle the state of a checkin
   changeState(z, i) {
-    const value = (z.checkins[i] + 2) % 4 - 1
+    const value = promoteWithNull(z.checkins[i])
     z.checkins.splice(i, 1, value)
     this.state.userRef.set({ zones: this.state.zones })
   }
@@ -105,7 +128,10 @@ class App extends Component {
     this.state.userRef.set({
       zones: this.state.zones.map(z => {
         if (z.checkins) {
-          z.checkins.unshift(z.checkins[0] !== undefined ? z.checkins[0] : STATE_NULL)
+          const checkin = z.checkins[0] !== undefined
+            ? checkinWithDecay(z.checkins, z.decay)
+            : STATE_NULL
+          z.checkins.unshift(checkin)
         }
         else {
           z.checkins = [STATE_NULL]
