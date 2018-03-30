@@ -40,6 +40,8 @@ const defaultData = {
   }]
 }
 
+const startDate = moment('20180324')
+
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
@@ -100,7 +102,14 @@ class App extends Component {
           }
           // if data, setState to render
           else {
-            this.setState({ zones: value.zones })
+
+            // set zones
+            this.setState({ zones: value.zones }, () => {
+              // if missing today, add it
+              if(value.zones[0].checkins.length - moment().diff(startDate, 'days') === 0) {
+                this.addColumn()
+              }
+            })
           }
         })
       }
@@ -247,7 +256,6 @@ class App extends Component {
   }
 
   dates() {
-    const startDate = moment('20180324')
     const sampleCheckins = this.state.zones[0].checkins || []
 
     return <div className='dates'>
