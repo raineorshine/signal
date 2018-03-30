@@ -75,8 +75,8 @@
   line-height: 24px;
 }
 
-.zone:hover .option,
-.row-options:hover .option {
+html:not(.can-touch) .zone:hover .option,
+html:not(.can-touch) .row-options:hover .option {
   border: solid 1px #DDD;
   color: #DDD;
 }
