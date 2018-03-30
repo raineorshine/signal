@@ -128,7 +128,7 @@ class App extends Component {
     this.state.userRef.set({
       zones: this.state.zones.map(z => {
         if (z.checkins) {
-          const checkin = z.checkins[0] !== undefined
+          const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
             ? checkinWithDecay(z.checkins, z.decay)
             : STATE_NULL
           z.checkins.unshift(checkin)
