@@ -141,11 +141,12 @@ class App extends Component {
     })
   }
 
-  addRow(label) {
+  addRow(label, decay) {
     const sampleCheckins = this.state.zones[0].checkins || []
     const zones = this.state.zones.concat([
       {
         label,
+        decay,
         checkins: sampleCheckins.concat().fill(STATE_NULL)
       }
     ])
@@ -193,9 +194,10 @@ class App extends Component {
               <div className='row-options'>
                 <span className='box option row-option' onClick={() => {
                   const label = prompt('Enter an emoji for the label of your new habit:')
-                  if (label) {
-                    this.addRow(label)
-                  }
+                  if (!label) return
+
+                  const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', 0)
+                  this.addRow(label, decay)
                 }}>+</span>
               </div>
             </div>
