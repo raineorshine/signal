@@ -98,5 +98,5 @@ html:not(.can-touch) .row-options:hover .option {
 }
 
 .option-hidden {
-  border-color: white !important;
+  visibility: hidden;
 }
