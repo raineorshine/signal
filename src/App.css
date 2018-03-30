@@ -11,11 +11,11 @@
 }
 
 .content {
-  white-space: nowrap;
-  width: 0;
-  margin: 50px auto;
-  left: -40%;
   position: relative;
+  margin-left: 50%;
+  margin-top: 50px;
+  left: -46%;
+  white-space: nowrap;
 
   -webkit-touch-callout: none;
   -webkit-user-select: none;
