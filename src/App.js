@@ -221,13 +221,14 @@ class App extends Component {
     this.saveZones(zones)
   }
 
-  removeColumn() {
-    const zones = this.state.zones.map(z => {
-      z.checkins.shift()
-      return z
-    })
-    this.saveZones(zones)
-  }
+  // development only
+  // removeColumn() {
+  //   const zones = this.state.zones.map(z => {
+  //     z.checkins.shift()
+  //     return z
+  //   })
+  //   this.saveZones(zones)
+  // }
 
   /**************************************************************
    * Render
@@ -254,7 +255,9 @@ class App extends Component {
             <div className='col-options'>
               <span className='box col1'></span>
               <span className='box option col-option' onClick={this.addColumn}>+</span>
-              <span className='box option col-option' onClick={this.removeColumn}>-</span>
+              {
+                // development only
+              /*<span className='box option col-option' onClick={this.removeColumn}>-</span>*/}
             </div>
           </div>
           : this.state.uid ? <p>Loading data...</p>
