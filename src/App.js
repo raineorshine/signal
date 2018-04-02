@@ -216,9 +216,11 @@ class App extends Component {
   }
 
   removeRow(z) {
-    const zones = this.state.zones.concat()
-    zones.splice(zones.indexOf(z), 1)
-    this.saveZones(zones)
+    if (window.confirm(`Are you sure you want to delete ${z.label}?`)) {
+      const zones = this.state.zones.concat()
+      zones.splice(zones.indexOf(z), 1)
+      this.saveZones(zones)
+    }
   }
 
   // development only
