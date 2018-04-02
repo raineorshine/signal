@@ -34,6 +34,7 @@
 .zone-label {
   line-height: 50px;
   font-size: 32px;
+  cursor: pointer;
 }
 
 .box {

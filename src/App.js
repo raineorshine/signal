@@ -187,7 +187,12 @@ class App extends Component {
     this.saveZones(zones)
   }
 
-  addRow(label, decay) {
+  addRow() {
+    const label = prompt('Enter an emoji for your new habit:')
+    if (!label) return
+
+    const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', 0)
+
     const sampleCheckins = this.state.zones[0].checkins || []
     const zones = this.state.zones.concat([
       {
@@ -197,6 +202,17 @@ class App extends Component {
       }
     ])
     this.saveZones(zones)
+  }
+
+  editRow(z) {
+    const label = prompt(`Enter a new emoji for ${z.label}:`)
+    if (!label) return
+
+    const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', z.decay)
+
+    z.label = label
+    z.decay = decay
+    this.saveZones()
   }
 
   moveRowDown(z) {
@@ -245,13 +261,7 @@ class App extends Component {
             <div className='zones'>
               {this.state.zones.map(this.zone)}
               <div className='row-options'>
-                <span className='box option row-option' onClick={() => {
-                  const label = prompt('Enter an emoji for the label of your new habit:')
-                  if (!label) return
-
-                  const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', 0)
-                  this.addRow(label, decay)
-                }}>+</span>
+                <span className='box option row-option' onClick={this.addRow}>+</span>
               </div>
             </div>
             <div className='col-options'>
@@ -280,7 +290,7 @@ class App extends Component {
         : <span className='box option option-row option-hidden'></span>
       }
       <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
-      <span className='box col1 zone-label'>{z.label}</span>
+      <span className='box col1 zone-label' onClick={() => this.editRow(z)}>{z.label}</span>
       <span className='checkins'>{z.checkins
         ? z.checkins.map((c, i) => this.checkin(c, i, z))
         : null
