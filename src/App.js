@@ -18,31 +18,29 @@ const firebaseConfig = {
 const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
-const defaultData = {
-  zones: [{
-    checkins: [0],
-    label: '💤'
-  }, {
-    checkins: [0],
-    label: '🥗'
-  }, {
-    checkins: [0],
-    label: '👟'
-  }, {
-    checkins: [0],
-    label: '📿'
-  }, {
-    checkins: [0],
-    label: '💌',
-    decay: 1
-  }, {
-    checkins: [0],
-    label: '🏡'
-  }, {
-    checkins: [0],
-    label: '🔧'
-  }]
-}
+const defaultZones = [{
+  checkins: [0],
+  label: '💤'
+}, {
+  checkins: [0],
+  label: '🥗'
+}, {
+  checkins: [0],
+  label: '👟'
+}, {
+  checkins: [0],
+  label: '📿'
+}, {
+  checkins: [0],
+  label: '💌',
+  decay: 1
+}, {
+  checkins: [0],
+  label: '🏡'
+}, {
+  checkins: [0],
+  label: '🔧'
+}]
 
 const startDate = moment('20180324')
 
@@ -51,6 +49,11 @@ const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
 window.firebase = firebase
 // firebase.auth().signOut()
+
+// init localStorage
+if (!localStorage.zones) {
+  localStorage.zones = '{}'
+}
 
 /**************************************************************
  * Helper functions
@@ -87,42 +90,51 @@ const checkinWithDecay = (checkins, decayRate) => {
   }
 }
 
-class App extends Component {
+/**************************************************************
+ * App
+ **************************************************************/
 
-  /**************************************************************
-   * Constructor
-   **************************************************************/
+class App extends Component {
 
   constructor() {
     super()
-    this.state = {}
+
+    // load data immediately from localStorage
+    this.state = {
+      zones: JSON.parse(localStorage.zones || '{}')
+    }
 
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
 
-      // if logged in, save the user into state
+      // if logged in, save the user ref and uid into state
       if (user) {
         const userRef = firebase.database().ref('users/' + user.uid)
         this.setState({ userRef, uid: user.uid })
 
-        // load user data
+        // load Firebase data
         userRef.on('value', snapshot => {
           const value = snapshot.val()
 
-          // if no data, initialize with defaults
+          // if no Firebase data, initialize with defaults
           if (!value)  {
-            userRef.set(defaultData)
+            this.saveZones(defaultZones)
           }
-          // if data, setState to render
-          else {
+          // if Firebase data is newer than stored data, update localStorage
+          else if (value.lastUpdated > localStorage.lastUpdated) {
 
-            // set zones
-            this.setState({ zones: value.zones }, () => {
+            // set state from Firebase data
+            this.saveZones(value.zones, false, () => {
+
               // if missing today, add it
               if(value.zones[0].checkins.length - moment().diff(startDate, 'days') === 0) {
                 this.addColumn()
               }
             })
+          }
+          // else (if Firebase data is older than stored data), update Firebase
+          else {
+            this.saveZones()
           }
         })
       }
@@ -143,28 +155,47 @@ class App extends Component {
    * State Change
    **************************************************************/
 
+  /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
+  saveZones(zones, saveToFirebase, cb) {
+    this.setState({ zones: zones || this.state.zones }, () => {
+
+      // update localStorage
+      localStorage.zones = JSON.stringify(this.state.zones)
+      localStorage.lastUpdated = Date.now()
+
+      // update Firebase
+      if (saveToFirebase) {
+        this.state.userRef.set({
+          zones: zones || this.state.zones,
+          lastUpdated: Date.now()
+        })
+      }
+
+      if (cb) cb()
+    })
+  }
+
   // toggle the state of a checkin
   changeState(z, i) {
     const value = promoteWithNull(z.checkins[i])
     z.checkins.splice(i, 1, value)
-    this.state.userRef.set({ zones: this.state.zones })
+    this.saveZones()
   }
 
   addColumn() {
-    this.state.userRef.set({
-      zones: this.state.zones.map(z => {
-        if (z.checkins) {
-          const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-            ? checkinWithDecay(z.checkins, z.decay)
-            : STATE_NULL
-          z.checkins.unshift(checkin)
-        }
-        else {
-          z.checkins = [STATE_NULL]
-        }
-        return z
-      })
+    const zones = this.state.zones.map(z => {
+      if (z.checkins) {
+        const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
+          ? checkinWithDecay(z.checkins, z.decay)
+          : STATE_NULL
+        z.checkins.unshift(checkin)
+      }
+      else {
+        z.checkins = [STATE_NULL]
+      }
+      return z
     })
+    this.saveZones(zones)
   }
 
   addRow(label, decay) {
@@ -176,7 +207,7 @@ class App extends Component {
         checkins: sampleCheckins.concat().fill(STATE_NULL)
       }
     ])
-    this.state.userRef.set({ zones })
+    this.saveZones(zones)
   }
 
   moveRowDown(z) {
@@ -184,7 +215,7 @@ class App extends Component {
     const i = zones.indexOf(z)
     zones.splice(i, 1)
     zones.splice(i+1, 0, z)
-    this.state.userRef.set({ zones })
+    this.saveZones(zones)
   }
 
   moveRowUp(z) {
@@ -192,13 +223,13 @@ class App extends Component {
     const i = zones.indexOf(z)
     zones.splice(i, 1)
     zones.splice(i-1, 0, z)
-    this.state.userRef.set({ zones })
+    this.saveZones(zones)
   }
 
   removeRow(z) {
     const zones = this.state.zones.concat()
     zones.splice(zones.indexOf(z), 1)
-    this.state.userRef.set({ zones })
+    this.saveZones(zones)
   }
 
   removeColumn() {
@@ -206,7 +237,7 @@ class App extends Component {
       z.checkins.shift()
       return z
     })
-    this.state.userRef.set({ zones })
+    this.saveZones(zones)
   }
 
   /**************************************************************
