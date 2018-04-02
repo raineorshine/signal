@@ -94,6 +94,10 @@ html:not(.can-touch) .row-options:hover .option {
   color: #DDD;
 }
 
+.col1 .col-option {
+  margin-left: 5px;
+}
+
 .option-row {
   position: relative;
   top: -14px;

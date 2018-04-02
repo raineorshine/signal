@@ -138,6 +138,8 @@ class App extends Component {
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
+    this.addColumn = this.addColumn.bind(this)
+    this.addRow = this.addRow.bind(this)
   }
 
   /**************************************************************
@@ -260,13 +262,11 @@ class App extends Component {
             {this.dates()}
             <div className='zones'>
               {this.state.zones.map(this.zone)}
-              <div className='row-options'>
-                <span className='box option row-option' onClick={this.addRow}>+</span>
-              </div>
             </div>
             <div className='col-options'>
-              <span className='box col1'></span>
-              <span className='box option col-option' onClick={this.addColumn}>+</span>
+              <span className='box col1'>
+                <span className='box option col-option' onClick={this.addRow}>+</span>
+              </span>
               {
                 // development only
               /*<span className='box option col-option' onClick={this.removeColumn}>-</span>*/}
