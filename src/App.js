@@ -59,17 +59,6 @@ if (!localStorage.zones) {
  * Helper functions
  **************************************************************/
 
-const isMobile = () => {
-  return navigator.userAgent.match(/Android/i)
-    || navigator.userAgent.match(/iPhone/i)
-    || navigator.userAgent.match(/iPad/i)
-    || navigator.userAgent.match(/iPod/i)
-    || navigator.userAgent.match(/BlackBerry/i)
-    || navigator.userAgent.match(/Windows Phone/i)
-    || navigator.userAgent.match(/Opera Mini/i)
-    || navigator.userAgent.match(/IEMobile/i)
-}
-
 const promoteWithNull = c => (c + 2) % 4 - 1
 // const demoteWithNull = c => (c + 4) % 4 - 1
 // const promote = c => (c + 2) % 3 - 1
@@ -264,14 +253,8 @@ class App extends Component {
             </div>
             <div className='col-options'>
               <span className='box col1'></span>
-              <span className='box option col-option'
-                onTouchStart={isMobile() ? () => this.addColumn() : null}
-                onClick={isMobile() ? null : () => this.addColumn()}
-              >+</span>
-              <span className='box option col-option'
-                onTouchStart={isMobile() ? () => this.removeColumn() : null}
-                onClick={isMobile() ? null : () => this.removeColumn()}
-              >-</span>
+              <span className='box option col-option' onClick={this.addColumn}>+</span>
+              <span className='box option col-option' onClick={this.removeColumn}>-</span>
             </div>
           </div>
           : this.state.uid ? <p>Loading data...</p>
@@ -301,10 +284,7 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    return <span key={i} className={'box checkin checkin' + c}
-      onTouchStart={isMobile() ? () => this.changeState(z, i) : null}
-      onClick={isMobile() ? null : () => this.changeState(z, i)}
-    ></span>
+    return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}></span>
   }
 
   dates() {
