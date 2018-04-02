@@ -2,6 +2,10 @@ import React, { Component } from 'react'
 import './App.css'
 import * as moment from 'moment'
 
+/**************************************************************
+ * Setup
+ **************************************************************/
+
 const firebaseConfig = {
   apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
   authDomain: "zonesofprep.firebaseapp.com",
@@ -48,6 +52,10 @@ firebase.initializeApp(firebaseConfig)
 window.firebase = firebase
 // firebase.auth().signOut()
 
+/**************************************************************
+ * Helper functions
+ **************************************************************/
+
 const isMobile = () => {
   return navigator.userAgent.match(/Android/i)
     || navigator.userAgent.match(/iPhone/i)
@@ -80,6 +88,11 @@ const checkinWithDecay = (checkins, decayRate) => {
 }
 
 class App extends Component {
+
+  /**************************************************************
+   * Constructor
+   **************************************************************/
+
   constructor() {
     super()
     this.state = {}
@@ -125,6 +138,10 @@ class App extends Component {
     this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
   }
+
+  /**************************************************************
+   * State Change
+   **************************************************************/
 
   // toggle the state of a checkin
   changeState(z, i) {
@@ -191,6 +208,10 @@ class App extends Component {
     })
     this.state.userRef.set({ zones })
   }
+
+  /**************************************************************
+   * Render
+   **************************************************************/
 
   render() {
     return <div className='app'>
