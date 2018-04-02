@@ -8,6 +8,7 @@
   height: 100%;
   background: -webkit-linear-gradient(right, rgba(255, 255, 255, 1), rgba(255,255,255, 0));
   z-index: 1;
+  pointer-events: none;
 }
 
 .content {
