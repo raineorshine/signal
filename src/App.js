@@ -19,27 +19,14 @@ const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultZones = [{
-  checkins: [0],
+  checkins: [STATE_NULL],
   label: '💤'
 }, {
-  checkins: [0],
+  checkins: [STATE_NULL],
   label: '🥗'
 }, {
-  checkins: [0],
+  checkins: [STATE_NULL],
   label: '👟'
-}, {
-  checkins: [0],
-  label: '📿'
-}, {
-  checkins: [0],
-  label: '💌',
-  decay: 1
-}, {
-  checkins: [0],
-  label: '🏡'
-}, {
-  checkins: [0],
-  label: '🔧'
 }]
 
 const startDate = moment('20180324')
@@ -79,6 +66,30 @@ const checkinWithDecay = (checkins, decayRate) => {
   }
 }
 
+/** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
+const getNewColumn = zones => {
+  return zones.map(z => {
+    if (z.checkins) {
+      const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
+        ? checkinWithDecay(z.checkins, z.decay)
+        : STATE_NULL
+      z.checkins.unshift(checkin)
+    }
+    else {
+      z.checkins = [STATE_NULL]
+    }
+    return z
+  })
+}
+
+// if missing days, fill them in
+const fill = zones => {
+  const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
+  return missingDays > 0
+    ? fill(getNewColumn(zones))
+    : zones
+}
+
 /**************************************************************
  * App
  **************************************************************/
@@ -90,7 +101,7 @@ class App extends Component {
 
     // load data immediately from localStorage
     this.state = {
-      zones: JSON.parse(localStorage.zones || '{}')
+      zones: fill(JSON.parse(localStorage.zones || null) || defaultZones)
     }
 
     // check if user is logged in
@@ -113,18 +124,9 @@ class App extends Component {
           else if (value.lastUpdated > localStorage.lastUpdated) {
 
             // set state from Firebase data
-            this.saveZones(value.zones, false, () => {
-
-              // if missing today, add it
-              if(value.zones[0].checkins.length - moment().diff(startDate, 'days') === 0) {
-                this.addColumn()
-              }
-            })
+            this.saveZones(fill(value.zones), true)
           }
-          // else (if Firebase data is older than stored data), update Firebase
-          else {
-            this.saveZones()
-          }
+          // do nothing if Firebase data is older than stored data
         })
       }
       // if not logged in, redirect to OAuth login
@@ -147,22 +149,22 @@ class App extends Component {
    **************************************************************/
 
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
-  saveZones(zones, saveToFirebase, cb) {
-    this.setState({ zones: zones || this.state.zones }, () => {
+  saveZones(zones, saveToLocalStorageOnly) {
+    zones = zones || this.state.zones
+    this.setState({ zones }, () => {
 
       // update localStorage
-      localStorage.zones = JSON.stringify(this.state.zones)
-      localStorage.lastUpdated = Date.now()
+      localStorage.zones = JSON.stringify(zones)
 
-      // update Firebase
-      if (saveToFirebase) {
+      if (!saveToLocalStorageOnly) {
+        localStorage.lastUpdated = Date.now()
+
+        // update Firebase
         this.state.userRef.set({
-          zones: zones || this.state.zones,
+          zones,
           lastUpdated: Date.now()
         })
       }
-
-      if (cb) cb()
     })
   }
 
@@ -174,19 +176,7 @@ class App extends Component {
   }
 
   addColumn() {
-    const zones = this.state.zones.map(z => {
-      if (z.checkins) {
-        const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-          ? checkinWithDecay(z.checkins, z.decay)
-          : STATE_NULL
-        z.checkins.unshift(checkin)
-      }
-      else {
-        z.checkins = [STATE_NULL]
-      }
-      return z
-    })
-    this.saveZones(zones)
+    this.saveZones(getNewColumn())
   }
 
   addRow() {
