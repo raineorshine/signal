@@ -101,39 +101,37 @@ class App extends Component {
 
     // load data immediately from localStorage
     this.state = {
-      zones: fill(JSON.parse(localStorage.zones || null) || defaultZones)
+      zones: fill(JSON.parse(localStorage.zones) || defaultZones)
     }
 
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
 
-      // if logged in, save the user ref and uid into state
-      if (user) {
-        const userRef = firebase.database().ref('users/' + user.uid)
-        this.setState({ userRef, uid: user.uid })
-
-        // load Firebase data
-        userRef.on('value', snapshot => {
-          const value = snapshot.val()
-
-          // if no Firebase data, initialize with defaults
-          if (!value)  {
-            this.saveZones(defaultZones)
-          }
-          // if Firebase data is newer than stored data, update localStorage
-          else if (value.lastUpdated > localStorage.lastUpdated) {
-
-            // set state from Firebase data
-            this.saveZones(fill(value.zones), true)
-          }
-          // do nothing if Firebase data is older than stored data
-        })
-      }
       // if not logged in, redirect to OAuth login
-      else {
+      if (!user) {
         const provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithRedirect(provider)
+        return
       }
+
+      // if logged in, save the user ref and uid into state
+      const userRef = firebase.database().ref('users/' + user.uid)
+      this.setState({ userRef, uid: user.uid })
+
+      // load Firebase data
+      userRef.on('value', snapshot => {
+        const value = snapshot.val()
+
+        // if no Firebase data, initialize with defaults
+        if (!value)  {
+          this.saveZones(defaultZones)
+        }
+        // if Firebase data is newer than stored data, update localStorage
+        else if (value.lastUpdated > localStorage.lastUpdated) {
+          this.saveZones(fill(value.zones), true)
+        }
+        // do nothing if Firebase data is older than stored data
+      })
     })
 
     this.zone = this.zone.bind(this)
@@ -149,14 +147,14 @@ class App extends Component {
    **************************************************************/
 
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
-  saveZones(zones, saveToLocalStorageOnly) {
+  saveZones(zones, localOnly) {
     zones = zones || this.state.zones
     this.setState({ zones }, () => {
 
       // update localStorage
       localStorage.zones = JSON.stringify(zones)
 
-      if (!saveToLocalStorageOnly) {
+      if (!localOnly) {
         localStorage.lastUpdated = Date.now()
 
         // update Firebase
