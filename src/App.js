@@ -18,7 +18,7 @@ const firebaseConfig = {
 const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
-const defaultZones = [{
+const defaultZones = JSON.stringify([{
   checkins: [STATE_NULL],
   label: '💤'
 }, {
@@ -27,7 +27,7 @@ const defaultZones = [{
 }, {
   checkins: [STATE_NULL],
   label: '👟'
-}]
+}])
 
 const startDate = moment('20180324')
 
@@ -39,7 +39,7 @@ window.firebase = firebase
 
 // init localStorage
 if (!localStorage.zones) {
-  localStorage.zones = '{}'
+  localStorage.zones = defaultZones
 }
 
 /**************************************************************
@@ -101,7 +101,7 @@ class App extends Component {
 
     // load data immediately from localStorage
     this.state = {
-      zones: fill(JSON.parse(localStorage.zones) || defaultZones)
+      zones: fill(JSON.parse(localStorage.zones || defaultZones))
     }
 
     // check if user is logged in
@@ -115,6 +115,7 @@ class App extends Component {
       }
 
       // if logged in, save the user ref and uid into state
+      console.log('Logged in as user', user.uid)
       const userRef = firebase.database().ref('users/' + user.uid)
       this.setState({ userRef, uid: user.uid })
 
@@ -124,11 +125,16 @@ class App extends Component {
 
         // if no Firebase data, initialize with defaults
         if (!value)  {
-          this.saveZones(defaultZones)
+          // console.log('localStorage')
+          this.saveZones(null, true)
         }
         // if Firebase data is newer than stored data, update localStorage
-        else if (value.lastUpdated > localStorage.lastUpdated) {
+        else if (value.lastUpdated > (localStorage.lastUpdated || 0)) {
+          // console.log('Firebase')
           this.saveZones(fill(value.zones), true)
+        }
+        else {
+          // console.log('Firebase (old)', value.lastUpdated, localStorage.lastUpdated)
         }
         // do nothing if Firebase data is older than stored data
       })
@@ -246,23 +252,25 @@ class App extends Component {
     return <div className='app'>
       <div className='gradient'></div>
       <div className='content'>
-        {this.state.zones ? <div>
-            {this.dates()}
-            <div className='zones'>
-              {this.state.zones.map(this.zone)}
+        {this.state.uid ? <div>
+          {this.state.zones ? <div>
+              {this.dates()}
+              <div className='zones'>
+                {this.state.zones.map(this.zone)}
+              </div>
+              <div className='col-options'>
+                <span className='box col1'>
+                  <span className='box option col-option' onClick={this.addRow}>+</span>
+                </span>
+                {
+                  // development only
+                /*<span className='box option col-option' onClick={this.removeColumn}>-</span>*/}
+              </div>
             </div>
-            <div className='col-options'>
-              <span className='box col1'>
-                <span className='box option col-option' onClick={this.addRow}>+</span>
-              </span>
-              {
-                // development only
-              /*<span className='box option col-option' onClick={this.removeColumn}>-</span>*/}
-            </div>
-          </div>
-          : this.state.uid ? <p>Loading data...</p>
-          : <p>Signing in...</p>
-        }
+            : <p>Loading data...</p>
+          }
+        </div>
+        : <p>Signing in...</p>}
       </div>
     </div>
   }
