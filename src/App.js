@@ -259,7 +259,8 @@ class App extends Component {
       <div className='top-options'>
         {this.state.showSettings ? <span>
           <span className='settings-content'>
-            v{pkg.version}, User ID: {this.state.uid}
+            Version: <span className='mono'>{pkg.version}</span><br/>
+            User ID: <span className='mono'>{this.state.uid}</span>
           </span>
         </span> : null}
         <span role='image' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>

@@ -1,3 +1,11 @@
+.app {
+  font-weight: 300;
+}
+
+.mono {
+  font-family: monospace;
+}
+
 .gradient {
   position: fixed;
   right: 0;
@@ -68,12 +76,19 @@
 }
 
 .settings-content {
-  margin-right: 10px;
+  display: inline-block;
+  margin-right: 30px;
+  padding: 5px;
+  text-align: right;
 }
 
 .settings-option {
+  position: absolute;
+  top: 0;
+  right: 0;
   opacity: 0.25;
   cursor: pointer;
+  padding: 3px;
 }
 
 .settings-option.active {
