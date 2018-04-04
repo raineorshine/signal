@@ -6,6 +6,7 @@
   background: -webkit-linear-gradient(right, rgba(255, 255, 255, 1), rgba(255,255,255, 0));
   z-index: 1;
   pointer-events: none;
+  font-weight: 300;
 }
 
 .content {
@@ -58,6 +59,26 @@
 .checkin1 { background-color: #58BB8A; }
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
+
+.top-options {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.settings-content {
+  margin-right: 10px;
+}
+
+.settings-option {
+  opacity: 0.25;
+  cursor: pointer;
+}
+
+.settings-option.active {
+  opacity: 1;
+}
 
 .row-options {
   position: absolute;

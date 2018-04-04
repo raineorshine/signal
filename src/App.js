@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import './App.css'
 import * as moment from 'moment'
+import * as pkg from '../package.json'
 
 /**************************************************************
  * Setup
@@ -140,6 +141,7 @@ class App extends Component {
       })
     })
 
+    this.toggleSettings = this.toggleSettings.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
@@ -151,6 +153,10 @@ class App extends Component {
   /**************************************************************
    * State Change
    **************************************************************/
+
+  toggleSettings() {
+    this.setState({ showSettings: !this.state.showSettings })
+  }
 
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
   saveZones(zones, localOnly) {
@@ -250,6 +256,14 @@ class App extends Component {
 
   render() {
     return <div className='app'>
+      <div className='top-options'>
+        {this.state.showSettings ? <span>
+          <span className='settings-content'>
+            v{pkg.version}, User ID: {this.state.uid}
+          </span>
+        </span> : null}
+        <span role='image' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
+      </div>
       <div className='gradient'></div>
       <div className='content'>
         {this.state.uid ? <div>
