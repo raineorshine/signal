@@ -285,7 +285,7 @@ class App extends Component {
             Mark explicit checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} />
           </span>
         </span> : null}
-        <span role='image' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
+        <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
       </div>
       <div className='gradient'></div>
       <div className='content'>
