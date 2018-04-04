@@ -155,8 +155,9 @@ class App extends Component {
       })
     })
 
-    this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
     this.toggleSettings = this.toggleSettings.bind(this)
+    this.toggleClearCheckin = this.toggleClearCheckin.bind(this)
+    this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
@@ -171,6 +172,10 @@ class App extends Component {
 
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
+  }
+
+  toggleClearCheckin() {
+    this.setState({ clearCheckin: !this.state.clearCheckin })
   }
 
   toggleShowCheckins(value, localOnly) {
@@ -209,10 +214,15 @@ class App extends Component {
 
   // toggle the state of a checkin
   changeState(z, i) {
-    const value = promote(z.checkins[i])
-    z.checkins.splice(i, 1, value)
     z.manualCheckins = z.manualCheckins || {}
-    z.manualCheckins[z.checkins.length - i] = true
+    if (this.state.clearCheckin) {
+      z.checkins.splice(i, 1, checkinWithDecay(this.state.zones[i + 1]))
+      z.manualCheckins[z.checkins.length - i] = false
+    }
+    else {
+      z.checkins.splice(i, 1, promote(z.checkins[i]))
+      z.manualCheckins[z.checkins.length - i] = true
+    }
     this.saveZones()
   }
 
@@ -285,13 +295,14 @@ class App extends Component {
    **************************************************************/
 
   render() {
-    return <div className='app'>
+    return <div className={'app' + (this.state.clearCheckin ? ' clear-checkin' : '')}>
       <div className='top-options'>
         {this.state.showSettings ? <span>
           <span className='settings-content'>
             Version: <span className='mono'>{pkg.version}</span><br/>
             User ID: <span className='mono'>{this.state.uid}</span><br/>
-            Mark explicit checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} />
+            Mark explicit checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+            Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} />
           </span>
         </span> : null}
         <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>

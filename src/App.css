@@ -69,6 +69,11 @@
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
 
+
+.clear-checkin .checkin {
+  cursor: crosshair;
+}
+
 .manualCheckin {
   position: absolute;
   right: 5px;
@@ -78,6 +83,10 @@
   height: 4px;
   background-color: rgba(255,255,255,0.4);
   border-radius: 999px;
+}
+
+.clear-checkin .checkin:hover .manualCheckin {
+  background-color: rgba(255,0,0,0.4);
 }
 
 .top-options {
