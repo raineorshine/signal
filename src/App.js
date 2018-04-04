@@ -35,8 +35,8 @@ const startDate = moment('20180324')
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
-window.firebase = firebase
-// firebase.auth().signOut()
+window.__DEBUG = {}
+window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
 // init localStorage
 if (!localStorage.zones) {
@@ -47,32 +47,39 @@ if (!localStorage.zones) {
  * Helper functions
  **************************************************************/
 
-const promoteWithNull = c => (c + 2) % 4 - 1
+// const promoteWithNull = c => (c + 2) % 4 - 1
 // const demoteWithNull = c => (c + 4) % 4 - 1
-// const promote = c => (c + 2) % 3 - 1
+const promote = c => (c + 2) % 3 - 1
 const demote = c => (c - 2) % 3 + 1
 // const promoteNoWrap = c => c < 1 ? c + 1 : 1
 // const demoteNoWrap = c => c > -1 ? c - 1 : -1
 
-const checkinWithDecay = (checkins, decayRate) => {
-  if (decayRate && checkins[0] > -1) {
-
+/** Return a new checkin for a given zone with potential decay */
+const checkinWithDecay = zone => {
+  if (zone.decay && zone.checkins[0] > -1) {
     // check if the decay rate has been met
-    // e.g. a zone with a decay rate of 3 will only decay after 3 identical checkins in a row
-    const readyToDecay = checkins.slice(0, decayRate).reduce((next, prev) => next === prev ? next : false) !== false
-    return readyToDecay ? demote(checkins[0]) : checkins[0]
+    // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
+    const checkinsInDecayZone = zone.checkins.slice(0, zone.decay)
+    const readyToDecay = same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
+    return readyToDecay ? demote(zone.checkins[0]) : zone.checkins[0]
   }
   else {
-    return checkins[0]
+    return zone.checkins[0]
   }
 }
+
+/** Returns true if all items in the list are the same. */
+const same = list => list.reduce((prev, next) => prev === next ? next : false) !== false
+
+/** Returns true if none of the given checkins have a manual checkin. */
+const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c,i) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - i + 1]))
 
 /** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
 const getNewColumn = zones => {
   return zones.map(z => {
     if (z.checkins) {
       const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-        ? checkinWithDecay(z.checkins, z.decay)
+        ? checkinWithDecay(z)
         : STATE_NULL
       z.checkins.unshift(checkin)
     }
@@ -83,7 +90,7 @@ const getNewColumn = zones => {
   })
 }
 
-// if missing days, fill them in
+/* if missing days, fill them in */
 const fill = zones => {
   const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
   return missingDays > 0
@@ -105,6 +112,9 @@ class App extends Component {
       zones: fill(JSON.parse(localStorage.zones || defaultZones)),
       showCheckins: localStorage.showCheckins === 'true'
     }
+
+    window.__DEBUG.addColumn = this.addColumn.bind(this)
+    window.__DEBUG.removeColumn = this.removeColumn.bind(this)
 
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
@@ -199,15 +209,15 @@ class App extends Component {
 
   // toggle the state of a checkin
   changeState(z, i) {
-    const value = promoteWithNull(z.checkins[i])
+    const value = promote(z.checkins[i])
     z.checkins.splice(i, 1, value)
-    z.manualCheckins = z.manualCheckins || []
-    z.manualCheckins[i] = true
+    z.manualCheckins = z.manualCheckins || {}
+    z.manualCheckins[z.checkins.length - i] = true
     this.saveZones()
   }
 
   addColumn() {
-    this.saveZones(getNewColumn())
+    this.saveZones(getNewColumn(this.state.zones))
   }
 
   addRow() {
@@ -262,14 +272,13 @@ class App extends Component {
     }
   }
 
-  // development only
-  // removeColumn() {
-  //   const zones = this.state.zones.map(z => {
-  //     z.checkins.shift()
-  //     return z
-  //   })
-  //   this.saveZones(zones)
-  // }
+  removeColumn() {
+    const zones = this.state.zones.map(z => {
+      z.checkins.shift()
+      return z
+    })
+    this.saveZones(zones)
+  }
 
   /**************************************************************
    * Render
@@ -299,9 +308,6 @@ class App extends Component {
                 <span className='box col1'>
                   <span className='box option col-option' onClick={this.addRow}>+</span>
                 </span>
-                {
-                  // development only
-                /*<span className='box option col-option' onClick={this.removeColumn}>-</span>*/}
               </div>
             </div>
             : <p>Loading data...</p>
@@ -333,7 +339,7 @@ class App extends Component {
 
   checkin(c, i, z) {
     return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}>
-      {this.state.showCheckins && z.manualCheckins && z.manualCheckins[i] ? <span className='manualCheckin'></span> : null}
+      {this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i] ? <span className='manualCheckin'></span> : null}
     </span>
   }
 
