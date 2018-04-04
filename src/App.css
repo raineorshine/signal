@@ -86,13 +86,9 @@ html:not(.can-touch) .row-options:hover .option {
 }
 
 .col-option {
-  margin: 10px 5px 10px 0;
+  margin-top: 15px;
   border: solid 1px #DDD;
   color: #DDD;
-}
-
-.col1 .col-option {
-  margin-left: 5px;
 }
 
 .option-row {
