@@ -61,12 +61,24 @@
 
 .checkin {
   cursor: pointer;
+  position: relative;
 }
 
 .checkin2 { background-color: white; }
 .checkin1 { background-color: #58BB8A; }
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
+
+.manualCheckin {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background-color: rgba(255,255,255,0.4);
+  border-radius: 999px;
+}
 
 .top-options {
   position: absolute;

@@ -182,6 +182,8 @@ class App extends Component {
   changeState(z, i) {
     const value = promoteWithNull(z.checkins[i])
     z.checkins.splice(i, 1, value)
+    z.manualCheckins = z.manualCheckins || []
+    z.manualCheckins[i] = true
     this.saveZones()
   }
 
@@ -310,7 +312,9 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}></span>
+    return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}>
+      {z.manualCheckins && z.manualCheckins[i] ? <span className='manualCheckin'></span> : null}
+    </span>
   }
 
   dates() {
