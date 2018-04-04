@@ -102,7 +102,8 @@ class App extends Component {
 
     // load data immediately from localStorage
     this.state = {
-      zones: fill(JSON.parse(localStorage.zones || defaultZones))
+      zones: fill(JSON.parse(localStorage.zones || defaultZones)),
+      showCheckins: localStorage.showCheckins === 'true'
     }
 
     // check if user is logged in
@@ -116,13 +117,16 @@ class App extends Component {
       }
 
       // if logged in, save the user ref and uid into state
-      console.log('Logged in as user', user.uid)
       const userRef = firebase.database().ref('users/' + user.uid)
       this.setState({ userRef, uid: user.uid })
 
       // load Firebase data
       userRef.on('value', snapshot => {
         const value = snapshot.val()
+
+        if (value && value.showCheckins) {
+          this.toggleShowCheckins(value.showCheckins, true)
+        }
 
         // if no Firebase data, initialize with defaults
         if (!value)  {
@@ -141,6 +145,7 @@ class App extends Component {
       })
     })
 
+    this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
     this.toggleSettings = this.toggleSettings.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
@@ -156,6 +161,20 @@ class App extends Component {
 
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
+  }
+
+  toggleShowCheckins(value, localOnly) {
+    value = value || !this.state.showCheckins
+    this.setState({ showCheckins: value }, () => {
+
+      // update localStorage
+      localStorage.showCheckins = JSON.stringify(value)
+
+      // update Firebase
+      if (!localOnly) {
+        this.state.userRef.set({ showCheckins: value })
+      }
+    })
   }
 
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
@@ -262,7 +281,8 @@ class App extends Component {
         {this.state.showSettings ? <span>
           <span className='settings-content'>
             Version: <span className='mono'>{pkg.version}</span><br/>
-            User ID: <span className='mono'>{this.state.uid}</span>
+            User ID: <span className='mono'>{this.state.uid}</span><br/>
+            Mark explicit checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} />
           </span>
         </span> : null}
         <span role='image' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
@@ -313,7 +333,7 @@ class App extends Component {
 
   checkin(c, i, z) {
     return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}>
-      {z.manualCheckins && z.manualCheckins[i] ? <span className='manualCheckin'></span> : null}
+      {this.state.showCheckins && z.manualCheckins && z.manualCheckins[i] ? <span className='manualCheckin'></span> : null}
     </span>
   }
 
