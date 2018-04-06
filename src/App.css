@@ -69,6 +69,8 @@
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
 
+.checkin.faded { opacity: 0.7; }
+
 
 .clear-checkin .checkin {
   cursor: crosshair;

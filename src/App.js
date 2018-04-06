@@ -43,6 +43,10 @@ if (!localStorage.zones) {
   localStorage.zones = defaultZones
 }
 
+if (!localStorage.showFadedToday) {
+  localStorage.showFadedToday = 'true'
+}
+
 /**************************************************************
  * Helper functions
  **************************************************************/
@@ -110,7 +114,8 @@ class App extends Component {
     // load data immediately from localStorage
     this.state = {
       zones: fill(JSON.parse(localStorage.zones || defaultZones)),
-      showCheckins: localStorage.showCheckins === 'true'
+      showCheckins: localStorage.showCheckins === 'true',
+      showFadedToday: localStorage.showFadedToday === 'true'
     }
 
     window.__DEBUG.addColumn = this.addColumn.bind(this)
@@ -136,6 +141,10 @@ class App extends Component {
 
         if (value && value.showCheckins) {
           this.toggleShowCheckins(value.showCheckins, true)
+        }
+
+        if (value && value.showFadedToday) {
+          this.toggleShowFadedToday(value.showFadedToday, true)
         }
 
         // if no Firebase data, initialize with defaults
@@ -176,6 +185,20 @@ class App extends Component {
 
   toggleClearCheckin() {
     this.setState({ clearCheckin: !this.state.clearCheckin })
+  }
+
+  toggleShowFadedToday(value, localOnly) {
+    value = value || !this.state.showFadedToday
+    this.setState({ showFadedToday: value }, () => {
+
+      // update localStorage
+      localStorage.showFadedToday = JSON.stringify(value)
+
+      // update Firebase
+      if (!localOnly) {
+        this.state.userRef.set({ showFadedToday: value })
+      }
+    })
   }
 
   toggleShowCheckins(value, localOnly) {
@@ -301,7 +324,8 @@ class App extends Component {
           <span className='settings-content'>
             Version: <span className='mono'>{pkg.version}</span><br/>
             User ID: <span className='mono'>{this.state.uid}</span><br/>
-            Mark explicit checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+            Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
+            Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
             Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} />
           </span>
         </span> : null}
@@ -349,7 +373,7 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    return <span key={i} className={'box checkin checkin' + c} onClick={() => this.changeState(z, i)}>
+    return <span key={i} className={'box checkin checkin' + c + (i === 0 && this.state.showFadedToday && (!z.manualCheckins || !z.manualCheckins[z.checkins.length]) ? ' faded' : '')} onClick={() => this.changeState(z, i)}>
       {this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i] ? <span className='manualCheckin'></span> : null}
     </span>
   }
