@@ -2,6 +2,10 @@
   font-weight: 300;
 }
 
+.loading {
+  margin-left: 50px;
+}
+
 .mono {
   font-family: monospace;
 }

@@ -349,10 +349,10 @@ class App extends Component {
                 </span>
               </div>
             </div>
-            : <p>Loading data...</p>
+            : <p className='loading'>Loading data...</p>
           }
         </div>
-        : <p>Signing in...</p>}
+        : <p className='loading'>Signing in...</p>}
       </div>
     </div>
   }
