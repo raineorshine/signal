@@ -119,15 +119,9 @@
   opacity: 1;
 }
 
-.row-options {
-  position: absolute;
-  bottom: 14px;
-  left: -31px;
-}
-
 .option {
-  color: white;
-  border: solid 1px white;
+  color: #DDD;
+  border: solid 1px #DDD;
   text-align: center;
   cursor: pointer;
   width: 24px;
@@ -135,10 +129,24 @@
   line-height: 24px;
 }
 
-html:not(.can-touch) .zone:hover .option,
-html:not(.can-touch) .row-options:hover .option {
-  border: solid 1px #DDD;
-  color: #DDD;
+.row-options {
+  display: inline-block;
+  overflow: hidden;
+  width: 0;
+  transition: width 250ms;
+  margin-top: -1px;
+  line-height: 50px;
+  vertical-align: middle /* required on .row-options and .option-row */
+}
+
+.settings-active .row-options {
+  width: 93px; /* explicit width required for transition. same value as auto. */
+}
+
+.option-row {
+  margin-left: 5px;
+  display: inline-block; /* to allow vertical alignment */
+  vertical-align: middle /* required on .row-options and .option-row */
 }
 
 .col-options {
@@ -149,12 +157,6 @@ html:not(.can-touch) .row-options:hover .option {
   margin-top: 15px;
   border: solid 1px #DDD;
   color: #DDD;
-}
-
-.option-row {
-  position: relative;
-  top: -14px;
-  margin-left: 5px;
 }
 
 .option-hidden {

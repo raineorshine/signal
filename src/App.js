@@ -324,7 +324,7 @@ class App extends Component {
    **************************************************************/
 
   render() {
-    return <div className={'app' + (this.state.clearCheckin ? ' clear-checkin' : '')}>
+    return <div className={'app' + (this.state.clearCheckin ? ' clear-checkin' : '') + (this.state.showSettings ? ' settings-active' : '')}>
       <div className='top-options'>
         {this.state.showSettings ? <span>
           <span className='settings-content'>
@@ -361,15 +361,17 @@ class App extends Component {
 
   zone(z, i) {
     return <div className='zone' key={z.label}>
-      { i > 0
-        ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
-        : <span className='box option option-row option-hidden'></span>
-      }
-      { i < this.state.zones.length-1
-        ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
-        : <span className='box option option-row option-hidden'></span>
-      }
-      <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
+      <span className='row-options'>
+        { i > 0
+          ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
+          : <span className='box option option-row option-hidden'></span>
+        }
+        { i < this.state.zones.length-1
+          ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
+          : <span className='box option option-row option-hidden'></span>
+        }
+        <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
+      </span>
       <span className='box col1 zone-label' onClick={() => this.editRow(z)}>{z.label}</span>
       <span className='checkins'>{z.checkins
         ? z.checkins.map((c, i) => this.checkin(c, i, z))
