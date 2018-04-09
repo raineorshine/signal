@@ -271,7 +271,7 @@ class App extends Component {
   }
 
   editRow(z) {
-    const label = prompt(`Enter a new emoji for ${z.label}:`)
+    const label = prompt(`Enter a new emoji for ${z.label}:`, z.label)
     if (!label) return
 
     const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', z.decay)
