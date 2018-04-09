@@ -9,7 +9,7 @@
 .gradient {
   position: fixed;
   right: 0;
-  width:  20%;
+  width:  20%; /* same as .checkins margin-right. */
   height: 100%;
   background: -webkit-linear-gradient(right, rgba(255, 255, 255, 1), rgba(255,255,255, 0));
   z-index: 1;
@@ -18,10 +18,7 @@
 }
 
 .content {
-  position: relative;
-  margin-left: 50%;
   margin-top: 50px;
-  left: -46%;
   white-space: nowrap;
 
   -webkit-touch-callout: none;
@@ -33,14 +30,11 @@
   position: relative;
 }
 
-.col1 {
-  margin: 0 7px;
-}
-
 .zone-label {
   line-height: 50px;
   font-size: 32px;
   cursor: pointer;
+  margin-right: 7px;
 }
 
 .box {
@@ -51,12 +45,6 @@
   transition: background-color 150ms linear;
   vertical-align: bottom;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
-}
-
-.dates {
-  color: #DDD;
-  line-height: 65px;
-  margin-left: 157px;
 }
 
 .checkin {
@@ -103,7 +91,14 @@
   margin-right: 30px;
   padding: 5px;
   text-align: right;
-  background-color: rgba(255,255,255,0.7)
+  background-color: rgba(255,255,255,0.7);
+  opacity: 0;
+  cursor: default;
+  transition: opacity 250ms;
+}
+
+.settings-active .settings-content {
+  opacity: 1;
 }
 
 .settings-option {
@@ -113,20 +108,47 @@
   opacity: 0.25;
   cursor: pointer;
   padding: 3px;
+
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .settings-option.active {
   opacity: 1;
 }
 
-.option {
+.left-controls {
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  padding-left: 20px;
+  background-color: white;
+}
+
+.settings-active .col-options {
+  margin-left: 160px; /* +93px */
+}
+
+.dates {
   color: #DDD;
-  border: solid 1px #DDD;
-  text-align: center;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
+  line-height: 65px;
+}
+
+.checkins {
+  margin-right: 20%; /* same as gradient width */
+}
+
+/* elements that expand when settings are owen */
+.checkins, .col-options, .dates {
+  margin-left: 77px; /* relative to .left-controls: 57px width + 20px padding-left */
+  transition: margin-left 250ms; /* match .row-options expand */
+}
+
+.settings-active .checkins,
+.settings-active .col-options,
+.settings-active .dates {
+  margin-left: 180px; /* +93px for visible .row-options */
 }
 
 .row-options {
@@ -140,17 +162,23 @@
 }
 
 .settings-active .row-options {
-  width: 93px; /* explicit width required for transition. same value as auto. */
+  width: 100px; /* explicit width required for transition. same value as auto. */
+}
+
+.option {
+  color: #DDD;
+  border: solid 1px #DDD;
+  text-align: center;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
 }
 
 .option-row {
   margin-left: 5px;
   display: inline-block; /* to allow vertical alignment */
   vertical-align: middle /* required on .row-options and .option-row */
-}
-
-.col-options {
-  margin-left: 93px; /* sync with .dates */
 }
 
 .col-option {
