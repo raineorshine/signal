@@ -59,13 +59,13 @@ const demote = c => (c - 2) % 3 + 1
 // const demoteNoWrap = c => c > -1 ? c - 1 : -1
 
 /** Return a new checkin for a given zone with potential decay */
-const checkinWithDecay = zone => {
-  if (zone.decay && zone.checkins[0] > -1) {
+const checkinWithDecay = (zone, i=0) => {
+  if (zone.decay && zone.checkins[i] > -1) {
     // check if the decay rate has been met
     // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
-    const checkinsInDecayZone = zone.checkins.slice(0, zone.decay)
+    const checkinsInDecayZone = zone.checkins.slice(i, i + zone.decay)
     const readyToDecay = same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
-    return readyToDecay ? demote(zone.checkins[0]) : zone.checkins[0]
+    return readyToDecay ? demote(zone.checkins[i]) : zone.checkins[i]
   }
   else {
     return zone.checkins[0]
@@ -238,14 +238,20 @@ class App extends Component {
   // toggle the state of a checkin
   changeState(z, i) {
     z.manualCheckins = z.manualCheckins || {}
-    if (this.state.clearCheckin) {
-      z.checkins.splice(i, 1, checkinWithDecay(this.state.zones[i + 1]))
-      z.manualCheckins[z.checkins.length - i] = false
-    }
-    else {
-      z.checkins.splice(i, 1, promote(z.checkins[i]))
-      z.manualCheckins[z.checkins.length - i] = true
-    }
+
+    // get conditions and values for determining a decayed checkin
+    const decayedCheckin = checkinWithDecay(z, i+1)
+    const useDecayedCheckin =
+      // clear checkin tool
+      this.state.clearCheckin ||
+      // if today, rotate through decayed checkin
+      // (add rotation after decayed checkin matches next checkin)
+      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && z.checkins[i] === decayedCheckin)
+
+    // set new checkin and manual checkin
+    z.checkins.splice(i, 1, useDecayedCheckin ? decayedCheckin : promote(z.checkins[i]))
+    z.manualCheckins[z.checkins.length - i] = !useDecayedCheckin
+
     this.saveZones()
   }
 
