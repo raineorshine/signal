@@ -144,15 +144,24 @@
 }
 
 /* elements that expand when settings are owen */
-.checkins, .col-options, .dates {
+.checkins, .dates {
   margin-left: 77px; /* relative to .left-controls: 57px width + 20px padding-left */
   transition: margin-left 250ms; /* match .row-options expand */
 }
 
 .settings-active .checkins,
-.settings-active .col-options,
-.settings-active .dates {
+.settings-active .col-options {
   margin-left: 180px; /* +93px for visible .row-options */
+}
+
+/* elements that expand when settings are owen */
+.col-options {
+  margin-left: 20px; /* relative to .left-controls: 57px width + 20px padding-left */
+  transition: margin-left 250ms; /* match .row-options expand */
+}
+
+.settings-active .col-options {
+  margin-left: 120px; /* +93px for visible .row-options */
 }
 
 .row-options {
