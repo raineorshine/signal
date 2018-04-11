@@ -47,6 +47,9 @@ if (!localStorage.showFadedToday) {
   localStorage.showFadedToday = 'true'
 }
 
+// manually add/remove class to body since it's outside the target element of render
+document.body.classList[localStorage.night === 'true' ? 'add' : 'remove']('night')
+
 /**************************************************************
  * Helper functions
  **************************************************************/
@@ -116,6 +119,7 @@ class App extends Component {
       zones: fill(JSON.parse(localStorage.zones || defaultZones)),
       showCheckins: localStorage.showCheckins === 'true',
       showFadedToday: localStorage.showFadedToday === 'true',
+      night: localStorage.night === 'true',
       scrollY: window.scrollY
     }
 
@@ -148,6 +152,10 @@ class App extends Component {
           this.toggleShowCheckins(value.showCheckins, true)
         }
 
+        if (value && value.night) {
+          this.toggleNightMode(value.night, true)
+        }
+
         if (value && value.showFadedToday) {
           this.toggleShowFadedToday(value.showFadedToday, true)
         }
@@ -167,6 +175,7 @@ class App extends Component {
     this.toggleSettings = this.toggleSettings.bind(this)
     this.toggleClearCheckin = this.toggleClearCheckin.bind(this)
     this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
+    this.toggleNightMode = this.toggleNightMode.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
@@ -212,6 +221,21 @@ class App extends Component {
       if (!localOnly) {
         this.state.userRef.set({ showCheckins: value })
       }
+    })
+  }
+
+  toggleNightMode(value, localOnly) {
+    value = value || !this.state.night
+
+    // manually add/remove class to body since it's outside the target element of render
+    document.body.classList[value ? 'add' : 'remove']('night')
+
+    this.setState({ night: value }, () => {
+
+      // update localStorage
+      localStorage.night = JSON.stringify(value)
+
+      // do not sync this settings to Firebase (per-device)
     })
   }
 
@@ -324,7 +348,10 @@ class App extends Component {
    **************************************************************/
 
   render() {
-    return <div className={'app' + (this.state.clearCheckin ? ' clear-checkin' : '') + (this.state.showSettings ? ' settings-active' : '')}>
+    return <div className={'app' +
+      (this.state.clearCheckin ? ' clear-checkin' : '') +
+      (this.state.showSettings ? ' settings-active' : '')
+    }>
       <div className='top-options'>
         <span className='settings-content'>
           {this.state.user ? <span>
@@ -335,6 +362,7 @@ class App extends Component {
           <hr/>
           Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
           Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+          Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
           Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
           <a className='logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
         </span>

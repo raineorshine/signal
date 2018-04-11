@@ -1,3 +1,9 @@
+body {
+  /* for night mode. */
+  transition: all 2s;
+  transition-property: color, background-color, border-color;
+}
+
 a {
   cursor: pointer;
 }
@@ -8,6 +14,11 @@ hr {
 
 .app {
   font-weight: 300;
+}
+
+.night {
+  background-color: black;
+  color: #333;
 }
 
 .loading {
@@ -31,6 +42,14 @@ hr {
   z-index: 1;
   pointer-events: none;
   font-weight: 300;
+
+  /* for night mode. */
+  transition: all 2s;
+  transition-property: color, background-color, border-color;
+}
+
+.night .gradient {
+  background: -webkit-linear-gradient(right, rgba(0, 0, 0, 1), rgba(0,0,0, 0));
 }
 
 .content {
@@ -80,7 +99,7 @@ hr {
   position: relative;
 }
 
-.checkin2 { background-color: white; }
+.checkin2 { background-color: transparent; }
 .checkin1 { background-color: #58BB8A; }
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
@@ -126,6 +145,11 @@ hr {
   transition: opacity 250ms;
 }
 
+.night .settings-content {
+  color: #ccc;
+  background-color: rgba(0,0,0,0.7);
+}
+
 .settings-active .settings-content {
   opacity: 1;
 }
@@ -153,6 +177,14 @@ hr {
   left: 0;
   padding-left: 20px;
   background-color: white;
+
+  /* for night mode. */
+  transition: all 2s;
+  transition-property: color, background-color, border-color;
+}
+
+.night .left-controls {
+  background-color: black;
 }
 
 @media only screen and (min-width: 480px) {
@@ -168,6 +200,14 @@ hr {
 .dates {
   color: #DDD;
   line-height: 65px;
+
+  /* for night mode. */
+  transition: all 2s;
+  transition-property: color, background-color, border-color;
+}
+
+.night .dates {
+  color: #333;
 }
 
 .checkins {
@@ -245,6 +285,10 @@ hr {
   width: 24px;
   height: 24px;
   line-height: 24px;
+
+  /* for night mode. */
+  transition: all 2s;
+  transition-property: color, background-color, border-color;
 }
 
 .option-row {
@@ -255,8 +299,11 @@ hr {
 
 .col-option {
   margin-top: 15px;
-  border: solid 1px #DDD;
-  color: #DDD;
+}
+
+.night .option {
+  color: #333;
+  border-color: #333;
 }
 
 .option-hidden {
