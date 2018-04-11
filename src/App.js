@@ -133,7 +133,7 @@ class App extends Component {
 
       // if logged in, save the user ref and uid into state
       const userRef = firebase.database().ref('users/' + user.uid)
-      this.setState({ userRef, uid: user.uid })
+      this.setState({ userRef, user })
 
       // load Firebase data
       userRef.on('value', snapshot => {
@@ -149,16 +149,11 @@ class App extends Component {
 
         // if no Firebase data, initialize with defaults
         if (!value)  {
-          // console.log('localStorage')
           this.saveZones(null, true)
         }
         // if Firebase data is newer than stored data, update localStorage
         else if (value.lastUpdated > (localStorage.lastUpdated || 0)) {
-          // console.log('Firebase')
           this.saveZones(fill(value.zones), true)
-        }
-        else {
-          // console.log('Firebase (old)', value.lastUpdated, localStorage.lastUpdated)
         }
         // do nothing if Firebase data is older than stored data
       })
@@ -327,17 +322,22 @@ class App extends Component {
     return <div className={'app' + (this.state.clearCheckin ? ' clear-checkin' : '') + (this.state.showSettings ? ' settings-active' : '')}>
       <div className='top-options'>
         <span className='settings-content'>
-          Version: <span className='mono'>{pkg.version}</span><br/>
-          User ID: <span className='mono'>{this.state.uid}</span><br/>
+          {this.state.user ? <span>
+            <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
+            <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
+          </span> : null}
+          <span className='dim'>Version: </span>{pkg.version}<br/>
+          <hr/>
           Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
           Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
-          Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} />
+          Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
+          <a className='logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
         </span>
         <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
       </div>
       <div className='gradient'></div>
       <div className='content'>
-        {this.state.uid ? <div>
+        {this.state.user ? <div>
           {this.state.zones ? <div>
               {this.dates()}
               <div className='zones'>

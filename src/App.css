@@ -1,3 +1,11 @@
+a {
+  cursor: pointer;
+}
+
+hr {
+  opacity: 0.4;
+}
+
 .app {
   font-weight: 300;
 }
@@ -8,6 +16,10 @@
 
 .mono {
   font-family: monospace;
+}
+
+.dim {
+  color: #aaa;
 }
 
 .gradient {
@@ -28,6 +40,12 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.logout {
+  color: #E5737C;
+  font-size: 80%;
+  margin-right: 5px;
 }
 
 .zones {
@@ -93,8 +111,9 @@
 .settings-content {
   display: inline-block;
   margin-right: 30px;
-  padding: 5px;
+  padding: 10px;
   text-align: right;
+  line-height: 1.4;
   background-color: rgba(255,255,255,0.7);
   opacity: 0;
   cursor: default;
