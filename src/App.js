@@ -115,11 +115,16 @@ class App extends Component {
     this.state = {
       zones: fill(JSON.parse(localStorage.zones || defaultZones)),
       showCheckins: localStorage.showCheckins === 'true',
-      showFadedToday: localStorage.showFadedToday === 'true'
+      showFadedToday: localStorage.showFadedToday === 'true',
+      scrollY: window.scrollY
     }
 
     window.__DEBUG.addColumn = this.addColumn.bind(this)
     window.__DEBUG.removeColumn = this.removeColumn.bind(this)
+
+    window.addEventListener('scroll', () => {
+      this.setState({ scrollY: window.scrollY })
+    })
 
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
@@ -359,7 +364,7 @@ class App extends Component {
 
   zone(z, i) {
     return <div className='zone' key={z.label}>
-      <span className='left-controls'>
+      <span className='left-controls' style={{ top: 115 + i*50 - this.state.scrollY }}>
         <span className='row-options'>
           { i > 0
             ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
