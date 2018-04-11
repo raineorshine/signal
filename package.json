@@ -1,6 +1,6 @@
 {
   "name": "zones",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "private": true,
   "dependencies": {
     "moment": "^2.21.0",
