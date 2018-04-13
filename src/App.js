@@ -381,6 +381,7 @@ class App extends Component {
         <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
       </div>
       <div className='gradient'></div>
+      <div className='desktop-mask'></div>
       <div className='content'>
         {this.state.zones ? <div>
             {this.dates()}

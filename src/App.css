@@ -48,6 +48,26 @@ hr {
   font-weight: 300;
 }
 
+.desktop-mask  {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 20%;
+  background-color: white;
+  z-index: 10;
+  height: 100%;
+}
+
+@media only screen and (min-width: 480px) {
+  .gradient {
+    right: 20%;
+  }
+  .desktop-mask  {
+    display: block;
+  }
+}
+
 .night .gradient {
   background: -webkit-linear-gradient(right, rgba(0, 0, 0, 1), rgba(0,0,0, 0));
 }
@@ -130,7 +150,7 @@ hr {
   position: fixed;
   top: 0;
   right: 0;
-  z-index: 2;
+  z-index: 20;
 }
 
 .settings-content {
