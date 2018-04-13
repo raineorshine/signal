@@ -353,7 +353,7 @@ class App extends Component {
       (this.state.showSettings ? ' settings-active' : '')
     }>
       <div className='top-options'>
-        <span className='settings-content'>
+        {this.state.showSettings ? <span className='settings-content'>
           {this.state.user ? <span>
             <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
             <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
@@ -365,7 +365,7 @@ class App extends Component {
           Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
           Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
           <a className='logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
-        </span>
+        </span> : null}
         <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
       </div>
       <div className='gradient'></div>
