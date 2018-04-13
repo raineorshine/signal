@@ -145,7 +145,9 @@ class App extends Component {
         return
       }
 
+      // disable offline mode
       window.clearTimeout(offlineTimer)
+      this.setState({ offline: false })
 
       // if logged in, save the user ref and uid into state
       const userRef = firebase.database().ref('users/' + user.uid)
