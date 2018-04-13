@@ -1,9 +1,3 @@
-body {
-  /* for night mode. */
-  transition: all 2s;
-  transition-property: color, background-color, border-color;
-}
-
 a {
   cursor: pointer;
 }
@@ -42,10 +36,6 @@ hr {
   z-index: 1;
   pointer-events: none;
   font-weight: 300;
-
-  /* for night mode. */
-  transition: all 2s;
-  transition-property: color, background-color, border-color;
 }
 
 .night .gradient {
@@ -177,10 +167,6 @@ hr {
   left: 0;
   padding-left: 20px;
   background-color: white;
-
-  /* for night mode. */
-  transition: all 2s;
-  transition-property: color, background-color, border-color;
 }
 
 .night .left-controls {
@@ -200,10 +186,6 @@ hr {
 .dates {
   color: #DDD;
   line-height: 65px;
-
-  /* for night mode. */
-  transition: all 2s;
-  transition-property: color, background-color, border-color;
 }
 
 .night .dates {
@@ -285,10 +267,6 @@ hr {
   width: 24px;
   height: 24px;
   line-height: 24px;
-
-  /* for night mode. */
-  transition: all 2s;
-  transition-property: color, background-color, border-color;
 }
 
 .option-row {
