@@ -130,6 +130,11 @@ class App extends Component {
       this.setState({ scrollY: window.scrollY })
     })
 
+    // Set to offline mode in 5 seconds. Cancelled with successful login.
+    const offlineTimer = window.setTimeout(() => {
+      this.setState({ offline: true })
+    }, 5000)
+
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
 
@@ -139,6 +144,8 @@ class App extends Component {
         firebase.auth().signInWithRedirect(provider)
         return
       }
+
+      window.clearTimeout(offlineTimer)
 
       // if logged in, save the user ref and uid into state
       const userRef = firebase.database().ref('users/' + user.uid)
@@ -352,6 +359,11 @@ class App extends Component {
       (this.state.clearCheckin ? ' clear-checkin' : '') +
       (this.state.showSettings ? ' settings-active' : '')
     }>
+      <div className='status'>
+        {this.state.offline ? <span className='status-offline'>Working Offline</span> :
+        !this.state.user ? <span className='status-loading'>Signing in...</span>
+        : null}
+      </div>
       <div className='top-options'>
         {this.state.showSettings ? <span className='settings-content'>
           {this.state.user ? <span>
@@ -370,22 +382,19 @@ class App extends Component {
       </div>
       <div className='gradient'></div>
       <div className='content'>
-        {this.state.user ? <div>
-          {this.state.zones ? <div>
-              {this.dates()}
-              <div className='zones'>
-                {this.state.zones.map(this.zone)}
-              </div>
-              <div className='col-options'>
-                <span className='box'>
-                  <span className='box option col-option' onClick={this.addRow}>+</span>
-                </span>
-              </div>
+        {this.state.zones ? <div>
+            {this.dates()}
+            <div className='zones'>
+              {this.state.zones.map(this.zone)}
             </div>
-            : <p className='loading'>Loading data...</p>
-          }
-        </div>
-        : <p className='loading'>Signing in...</p>}
+            <div className='col-options'>
+              <span className='box'>
+                <span className='box option col-option' onClick={this.addRow}>+</span>
+              </span>
+            </div>
+          </div>
+          : <p className='loading'>Loading data...</p>
+        }
       </div>
     </div>
   }
