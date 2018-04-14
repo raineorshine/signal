@@ -53,7 +53,7 @@ document.body.classList[localStorage.night === 'true' ? 'add' : 'remove']('night
  * Helper functions
  **************************************************************/
 
-// const promoteWithNull = c => (c + 2) % 4 - 1
+const promoteWithNull = c => (c + 2) % 4 - 1
 // const demoteWithNull = c => (c + 4) % 4 - 1
 const promote = c => (c + 2) % 3 - 1
 const demote = c => (c - 2) % 3 + 1
@@ -306,15 +306,17 @@ class App extends Component {
 
     // get conditions and values for determining a decayed checkin
     const decayedCheckin = checkinWithDecay(z, i+1)
+    const prevCheckinNull = z.checkins[i+1] === undefined || z.checkins[i+1] === STATE_NULL
     const useDecayedCheckin =
       // clear checkin tool
       this.state.clearCheckin ||
       // if today, rotate through decayed checkin
       // (add rotation after decayed checkin matches next checkin)
-      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && z.checkins[i] === decayedCheckin)
+      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && z.checkins[i] === decayedCheckin && !prevCheckinNull)
 
     // set new checkin and manual checkin
-    z.checkins.splice(i, 1, useDecayedCheckin ? decayedCheckin : promote(z.checkins[i]))
+    z.checkins.splice(i, 1, useDecayedCheckin ? decayedCheckin :
+      prevCheckinNull ? promoteWithNull(z.checkins[i]) : promote(z.checkins[i]))
     z.manualCheckins[z.checkins.length - i] = !useDecayedCheckin
 
     this.saveZones()
