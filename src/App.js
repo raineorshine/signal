@@ -385,7 +385,7 @@ class App extends Component {
 
   editNote(z, i, text) {
     z.notes = z.notes || {}
-    z.notes[i] = text
+    z.notes[z.checkins.length - i - 1] = text
     this.saveZones()
   }
 
@@ -439,7 +439,7 @@ class App extends Component {
             <div className='popup note-popup'>
               <p className='note-label'>{this.state.noteEdit.z.label}</p>
               <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
-              <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.i]}></textarea>
+              <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
               <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
             </div>
           </div> : null}
@@ -512,6 +512,7 @@ class App extends Component {
       }}
     ><span className={'box checkin checkin' + c + (i === 0 && this.state.showFadedToday && (!z.manualCheckins || !z.manualCheckins[z.checkins.length]) ? ' faded' : '')}>
       {this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i] ? <span className='manualCheckin'></span> : null}
+      {z.notes && z.notes[z.checkins.length - i - 1] ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
 
