@@ -498,7 +498,6 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    const hasManualCheckin = this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i]
     const hasNote = z.notes && z.notes[z.checkins.length - i - 1]
     return <ClickNHold
       key={i}
@@ -522,7 +521,7 @@ class App extends Component {
       }}
     ><span className={'box checkin checkin' + c + (
       // today
-      (this.state.showFadedToday && i === 0 || this.state.showCheckins) &&
+      ((this.state.showFadedToday && i === 0) || this.state.showCheckins) &&
       (!z.manualCheckins || !z.manualCheckins[z.checkins.length - i]) ? ' faded' : '')}>
       {hasNote ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
