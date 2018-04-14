@@ -68,7 +68,8 @@ hr {
   background-color: #66fee90a;
 }
 
-.tutorial-button {
+/** additional specificity needed to override night mode link selector*/
+a.tutorial-button {
   color: white;
   background-color: #58BB8A;
   width: 50%;
