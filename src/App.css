@@ -16,6 +16,10 @@ hr {
   color: #333;
 }
 
+.night a {
+  color: #aaaadd;
+}
+
 .status {
   position: absolute;
   top: 10px;
@@ -135,7 +139,8 @@ hr {
   margin-right: 5px;
 }
 
-.settings-logout {
+/** additional specificity needed to override night mode link selector*/
+a.settings-logout {
   color: #E5737C;
   margin-right: 5px;
 }
