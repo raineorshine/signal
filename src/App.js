@@ -30,8 +30,6 @@ const defaultZones = JSON.stringify([{
   label: '👟'
 }])
 
-const startDate = moment('20180324')
-
 // firebase init
 const firebase = window.firebase
 firebase.initializeApp(firebaseConfig)
@@ -98,10 +96,10 @@ const getNewColumn = zones => {
 }
 
 /* if missing days, fill them in */
-const fill = zones => {
+const fill = (zones, startDate) => {
   const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
   return missingDays > 0
-    ? fill(getNewColumn(zones))
+    ? fill(getNewColumn(zones), startDate)
     : zones
 }
 
@@ -115,8 +113,10 @@ class App extends Component {
     super()
 
     // load data immediately from localStorage
+    const defaultStartDate = localStorage.startDate || moment().subtract(6, 'days').toISOString()
     this.state = {
-      zones: fill(JSON.parse(localStorage.zones || defaultZones)),
+      zones: fill(JSON.parse(localStorage.zones || defaultZones), defaultStartDate),
+      startDate: defaultStartDate,
       showCheckins: localStorage.showCheckins === 'true',
       showFadedToday: localStorage.showFadedToday === 'true',
       night: localStorage.night === 'true',
@@ -157,27 +157,32 @@ class App extends Component {
       userRef.on('value', snapshot => {
         const value = snapshot.val()
 
-        if (value && value.showCheckins) {
-          this.toggleShowCheckins(value.showCheckins, true)
-        }
+        if (value) {
+          if (value.showCheckins) {
+            this.toggleShowCheckins(value.showCheckins, true)
+          }
 
-        if (value && value.night) {
-          this.toggleNightMode(value.night, true)
-        }
+          if (value.night) {
+            this.toggleNightMode(value.night, true)
+          }
 
-        if (value && value.showFadedToday) {
-          this.toggleShowFadedToday(value.showFadedToday, true)
-        }
+          if (value.showFadedToday) {
+            this.toggleShowFadedToday(value.showFadedToday, true)
+          }
 
+          const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
+          this.saveStartDate(startDate, true)
+
+          // if Firebase data is newer than stored data, update localStorage
+          if (value.lastUpdated > (localStorage.lastUpdated || 0)) {
+            this.saveZones(fill(value.zones), true, startDate)
+          }
+          // do nothing if Firebase data is older than stored data
+        }
         // if no Firebase data, initialize with defaults
-        if (!value)  {
+        else {
           this.saveZones(null, true)
         }
-        // if Firebase data is newer than stored data, update localStorage
-        else if (value.lastUpdated > (localStorage.lastUpdated || 0)) {
-          this.saveZones(fill(value.zones), true)
-        }
-        // do nothing if Firebase data is older than stored data
       })
     })
 
@@ -249,6 +254,20 @@ class App extends Component {
   }
 
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
+  saveStartDate(startDate, localOnly) {
+    this.setState({ startDate }, () => {
+
+      // update localStorage
+      localStorage.startDate = startDate
+
+      // update Firebase
+      if (!localOnly) {
+        this.state.userRef.set({ startDate })
+      }
+    })
+  }
+
+  /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
   saveZones(zones, localOnly) {
     zones = zones || this.state.zones
     this.setState({ zones }, () => {
@@ -262,6 +281,7 @@ class App extends Component {
         // update Firebase
         this.state.userRef.set({
           zones,
+          startDate: this.state.startDate,
           lastUpdated: Date.now()
         })
       }
@@ -436,7 +456,7 @@ class App extends Component {
 
     return <div className='dates'>
       {sampleCheckins.map((checkin, i) => {
-        const date = moment(startDate).add(sampleCheckins.length - i - 1, 'days')
+        const date = moment(this.state.startDate).add(sampleCheckins.length - i - 1, 'days')
         return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
       })}
     </div>
