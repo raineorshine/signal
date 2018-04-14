@@ -3,6 +3,7 @@ import './App.css'
 import * as moment from 'moment'
 import * as pkg from '../package.json'
 import tutorialImg from './tutorial.png'
+import ClickNHold from 'react-click-n-hold'
 
 /**************************************************************
  * Setup
@@ -193,7 +194,6 @@ class App extends Component {
       })
     })
 
-    this.endTutorial = this.endTutorial.bind(this)
     this.toggleSettings = this.toggleSettings.bind(this)
     this.toggleClearCheckin = this.toggleClearCheckin.bind(this)
     this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
@@ -204,15 +204,12 @@ class App extends Component {
     this.render = this.render.bind(this)
     this.addColumn = this.addColumn.bind(this)
     this.addRow = this.addRow.bind(this)
+    this.editNote = this.editNote.bind(this)
   }
 
   /**************************************************************
    * State Change
    **************************************************************/
-
-  endTutorial() {
-    this.setState({ tutorial: false })
-  }
 
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
@@ -386,6 +383,12 @@ class App extends Component {
     this.saveZones(zones)
   }
 
+  editNote(z, i, text) {
+    z.notes = z.notes || {}
+    z.notes[i] = text
+    this.saveZones()
+  }
+
   /**************************************************************
    * Render
    **************************************************************/
@@ -395,15 +398,14 @@ class App extends Component {
       (this.state.clearCheckin ? ' clear-checkin' : '') +
       (this.state.showSettings ? ' settings-active' : '')
     }>
-      {this.state.tutorial ?
-
+      {
         // tutorial
-        <div className='tutorial-container'>
-          <div className='tutorial'>
+        this.state.tutorial ? <div className='popup-container'>
+          <div className='popup'>
             <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
             <p className='tutorial-text'>
               Keep track of habits! <span className='tutorial-colored-text tutorial-red'>Red</span>, <span className='tutorial-colored-text tutorial-yellow'>yellow</span>, <span className='tutorial-colored-text tutorial-green'>green</span>—you choose what each one means!<br/>
-              <a className='tutorial-button' onClick={this.endTutorial}>Let's Go!</a>
+              <a className='button tutorial-button' onClick={() => this.setState({ tutorial: false })}>Let's Go!</a>
             </p>
           </div>
         </div> :
@@ -432,6 +434,16 @@ class App extends Component {
             </span> : null}
             <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
           </div>
+
+          {this.state.noteEdit ? <div className='popup-container note-container'>
+            <div className='popup note-popup'>
+              <p className='note-label'>{this.state.noteEdit.z.label}</p>
+              <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
+              <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.i]}></textarea>
+              <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
+            </div>
+          </div> : null}
+
           <div className='gradient'></div>
           <div className='desktop-mask'></div>
           <div className='content'>
@@ -478,9 +490,29 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
-    return <span key={i} className={'box checkin checkin' + c + (i === 0 && this.state.showFadedToday && (!z.manualCheckins || !z.manualCheckins[z.checkins.length]) ? ' faded' : '')} onClick={() => this.changeState(z, i)}>
+    return <ClickNHold
+      key={i}
+      className='clicknhold'
+      time={0.5}
+      onClickNHold={() => {
+        this.setState({
+          noteEdit: { z, i }
+        })
+
+        // focus (after render)
+        window.setTimeout(() => {
+          document.querySelector('.note-text').focus()
+        }, 300)
+      }}
+      onEnd={(e, enough) => {
+        // normal click event
+        if (!enough) {
+          this.changeState(z, i)
+        }
+      }}
+    ><span className={'box checkin checkin' + c + (i === 0 && this.state.showFadedToday && (!z.manualCheckins || !z.manualCheckins[z.checkins.length]) ? ' faded' : '')}>
       {this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i] ? <span className='manualCheckin'></span> : null}
-    </span>
+    </span></ClickNHold>
   }
 
   dates() {

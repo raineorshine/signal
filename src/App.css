@@ -40,19 +40,93 @@ hr {
   color: #aaa;
 }
 
-.tutorial-container {
+.popup-container {
   padding: 16px;
+  position: fixed;
+  top: 0;
+  z-index: 20;
+  width: calc(100% - 32px); /* -padding */
+  height: 100%;
+  background-color: rgba(255,255,255,0.7);
 }
 
-.tutorial {
+.popup {
   box-shadow: 3px 3px 12px 0 #ccc;
   max-width: 80%;
   max-width: 320px;
   margin: 40px auto;
   overflow: hidden;
   line-height: 1.4;
-  background-color: #eee;
   text-align: center;
+  background-color: white;
+}
+
+.night .popup {
+  background-color: black;
+}
+
+/** additional specificity needed to override night mode link selector*/
+a.button {
+  color: white;
+  background-color: #58BB8A;
+  width: 50%;
+  padding: 10px;
+  text-align: center;
+  display: inline-block;
+  border-radius: 999px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.popup-tutorial {
+  background-color: #eee;
+}
+
+.note-container {
+  background-color: rgba(0,0,0,.2);
+}
+
+.note-popup {
+  position: relative;
+  padding: 20px;
+  height: calc(100% - 120px);
+  margin-top: 20px;
+}
+
+.note-label {
+  font-size: 48px;
+  margin: 0;
+}
+
+.note-date {
+  font-size: 12px;
+  color: #aaa;
+  margin: 0 0 5px 0;
+}
+
+a.note-button {
+  position: absolute;
+  bottom: 20px;
+  margin-left: calc(-25% - 10px);
+}
+
+.note-text {
+  resize: none;
+  border: none;
+  display: block;
+  width: calc(100% - 40px);
+  height: calc(100% - 200px);
+  margin: 0 auto 10px auto;
+  min-height: 100px;
+  line-height: 1.5;
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  padding: 20px;
+}
+
+.note-text:focus {
+  outline: none;
 }
 
 .tutorial-image {
@@ -66,19 +140,6 @@ hr {
   margin: 0;
   padding: 20px;
   background-color: #66fee90a;
-}
-
-/** additional specificity needed to override night mode link selector*/
-a.tutorial-button {
-  color: white;
-  background-color: #58BB8A;
-  width: 50%;
-  padding: 10px;
-  text-align: center;
-  display: inline-block;
-  border-radius: 999px;
-  margin-top: 10px;
-  cursor: pointer;
 }
 
 .tutorial-colored-text { padding: 2px; }
@@ -277,6 +338,10 @@ a.settings-logout {
 
 .checkins {
   margin-right: 20%; /* same as gradient width */
+}
+
+.clicknhold {
+  display: inline;
 }
 
 /* elements that expand when settings are owen */
