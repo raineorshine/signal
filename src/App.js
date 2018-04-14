@@ -138,6 +138,16 @@ class App extends Component {
       this.setState({ scrollY: window.scrollY })
     })
 
+    window.addEventListener('keydown', e => {
+      // close all popups if the escape key is hit
+      if (e.keyCode === 27) {
+        this.setState({
+          noteEdit: null,
+          tutorial: false
+        })
+      }
+    })
+
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
 
