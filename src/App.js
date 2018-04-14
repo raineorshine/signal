@@ -169,6 +169,12 @@ class App extends Component {
         user
       })
 
+      // update user information
+      userRef.update({
+        name: user.displayName,
+        email: user.email
+      })
+
       // load Firebase data
       userRef.on('value', snapshot => {
         const value = snapshot.val()
@@ -195,7 +201,7 @@ class App extends Component {
           }
           // do nothing if Firebase data is older than stored data
         }
-        // if no Firebase data, initialize with defaults and show tutorial
+        // if no Firebase data, initialize with defaults
         else {
           this.saveZones(null, true)
         }
@@ -236,7 +242,7 @@ class App extends Component {
 
       // update Firebase
       if (!localOnly) {
-        this.state.userRef.set({ showFadedToday: value })
+        this.state.userRef.update({ showFadedToday: value })
       }
     })
   }
@@ -250,7 +256,7 @@ class App extends Component {
 
       // update Firebase
       if (!localOnly) {
-        this.state.userRef.set({ showCheckins: value })
+        this.state.userRef.update({ showCheckins: value })
       }
     })
   }
@@ -279,7 +285,7 @@ class App extends Component {
 
       // update Firebase
       if (!localOnly) {
-        this.state.userRef.set({ startDate })
+        this.state.userRef.update({ startDate })
       }
     })
   }
@@ -296,7 +302,7 @@ class App extends Component {
         localStorage.lastUpdated = Date.now()
 
         // update Firebase
-        this.state.userRef.set({
+        this.state.userRef.update({
           zones,
           startDate: this.state.startDate,
           lastUpdated: Date.now()
