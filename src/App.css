@@ -121,13 +121,13 @@ a.note-button {
   display: block;
   width: calc(100% - 40px);
   height: calc(100% - 200px);
-  margin: 0 auto 10px auto;
+  margin: -110px auto 10px auto; /* negative margin for mobile keyboard alignment. */
   min-height: 100px;
   line-height: 1.5;
   font-size: 18px;
   font-weight: 300;
   font-style: italic;
-  padding: 20px;
+  padding: 130px 20px 20px 20px; /* top-padding for mobile keyboard alignment. */
 }
 
 .note-text:focus {
