@@ -173,17 +173,18 @@ class App extends Component {
         user
       })
 
-      // update user information
-      userRef.update({
-        name: user.displayName,
-        email: user.email
-      })
-
       // load Firebase data
       userRef.on('value', snapshot => {
         const value = snapshot.val()
 
         if (value) {
+
+          // update user information
+          userRef.update({
+            name: user.displayName,
+            email: user.email
+          })
+
           if (value.showCheckins) {
             this.toggleShowCheckins(value.showCheckins, true)
           }
