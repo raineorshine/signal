@@ -148,6 +148,10 @@ class App extends Component {
       }
     })
 
+    window.addEventListener('mousemove', () => {
+      this.setState({ disableClickNHold: true })
+    })
+
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
 
@@ -408,10 +412,13 @@ class App extends Component {
    **************************************************************/
 
   render() {
-    return <div className={'app' +
-      (this.state.clearCheckin ? ' clear-checkin' : '') +
-      (this.state.showSettings ? ' settings-active' : '')
-    }>
+    return <div
+      className={'app' +
+        (this.state.clearCheckin ? ' clear-checkin' : '') +
+        (this.state.showSettings ? ' settings-active' : '')}
+      // keep track of touch devices so that we can disable duplicate touch/mousedown events
+      onTouchStart={() => this.setState({ touch: true })}
+    >
       {
         // tutorial
         this.state.tutorial ? <div className='popup-container'>
@@ -509,23 +516,39 @@ class App extends Component {
       key={i}
       className='clicknhold'
       time={0.5}
-      onClickNHold={() => {
+      onStart={(e) => {
         this.setState({
-          noteEdit: { z, i }
+          disableClickNHold: false
         })
+      }}
+      onClickNHold={() => {
+        if (!this.state.disableClickNHold) {
+          this.setState({
+            noteEdit: { z, i }
+          })
 
-        // focus (after render)
-        window.setTimeout(() => {
-          document.querySelector('.note-text').focus()
-        }, 300)
+          // focus (after render)
+          window.setTimeout(() => {
+            const noteText = document.querySelector('.note-text')
+            if (noteText) {
+              noteText.focus()
+            }
+          }, 350)
+        }
       }}
       onEnd={(e, enough) => {
         // normal click event
-        if (!enough) {
+        // treat mouse event as duplicate and ignore if on a touchscreen
+        if (!enough && !(this.state.touch && e.type === 'mouseup')) {
           this.changeState(z, i)
         }
+
+        // must be disableed to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
+        this.setState({
+          disableClickNHold: true
+        })
       }}
-    ><span className={'box checkin checkin' + c + (
+    ><span onTouchMove={() => this.setState({ disableClickNHold: true })} className={'box checkin checkin' + c + (
       // today
       ((this.state.showFadedToday && i === 0) || this.state.showCheckins) &&
       (!z.manualCheckins || !z.manualCheckins[z.checkins.length - i]) ? ' faded' : '')}>
