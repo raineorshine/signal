@@ -128,17 +128,15 @@ class App extends Component {
       tutorial: !localStorage.lastUpdated
     }
 
-    window.__DEBUG.addColumn = this.addColumn.bind(this)
-    window.__DEBUG.removeColumn = this.removeColumn.bind(this)
-
-    window.addEventListener('scroll', () => {
-      this.setState({ scrollY: window.scrollY })
-    })
-
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
       this.setState({ offline: true })
     }, 5000)
+
+    // update scroll for fixing position:fixed controls
+    window.addEventListener('scroll', () => {
+      this.setState({ scrollY: window.scrollY })
+    })
 
     // check if user is logged in
     firebase.auth().onAuthStateChanged(user => {
