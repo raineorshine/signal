@@ -70,7 +70,7 @@ const checkinWithDecay = (zone, i=0) => {
     return readyToDecay ? demote(zone.checkins[i]) : zone.checkins[i]
   }
   else {
-    return zone.checkins[0]
+    return zone.checkins[i]
   }
 }
 
