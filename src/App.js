@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import './App.css'
 import * as moment from 'moment'
 import * as pkg from '../package.json'
+import tutorialImg from './tutorial.png'
 
 /**************************************************************
  * Setup
@@ -114,13 +115,16 @@ class App extends Component {
 
     // load data immediately from localStorage
     const defaultStartDate = localStorage.startDate || moment().subtract(6, 'days').toISOString()
+    const startZones = fill(JSON.parse(localStorage.zones || defaultZones), defaultStartDate)
     this.state = {
-      zones: fill(JSON.parse(localStorage.zones || defaultZones), defaultStartDate),
+      zones: startZones,
       startDate: defaultStartDate,
       showCheckins: localStorage.showCheckins === 'true',
       showFadedToday: localStorage.showFadedToday === 'true',
       night: localStorage.night === 'true',
-      scrollY: window.scrollY
+      scrollY: window.scrollY,
+      // start the tutorial if the user has not checked in yet
+      tutorial: !localStorage.lastUpdated
     }
 
     window.__DEBUG.addColumn = this.addColumn.bind(this)
@@ -147,11 +151,14 @@ class App extends Component {
 
       // disable offline mode
       window.clearTimeout(offlineTimer)
-      this.setState({ offline: false })
 
       // if logged in, save the user ref and uid into state
       const userRef = firebase.database().ref('users/' + user.uid)
-      this.setState({ userRef, user })
+      this.setState({
+        offline: false,
+        userRef,
+        user
+      })
 
       // load Firebase data
       userRef.on('value', snapshot => {
@@ -179,13 +186,14 @@ class App extends Component {
           }
           // do nothing if Firebase data is older than stored data
         }
-        // if no Firebase data, initialize with defaults
+        // if no Firebase data, initialize with defaults and show tutorial
         else {
           this.saveZones(null, true)
         }
       })
     })
 
+    this.endTutorial = this.endTutorial.bind(this)
     this.toggleSettings = this.toggleSettings.bind(this)
     this.toggleClearCheckin = this.toggleClearCheckin.bind(this)
     this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
@@ -201,6 +209,10 @@ class App extends Component {
   /**************************************************************
    * State Change
    **************************************************************/
+
+  endTutorial() {
+    this.setState({ tutorial: false })
+  }
 
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
@@ -381,44 +393,62 @@ class App extends Component {
       (this.state.clearCheckin ? ' clear-checkin' : '') +
       (this.state.showSettings ? ' settings-active' : '')
     }>
-      <div className='status'>
-        {this.state.offline ? <span className='status-offline'>Working Offline</span> :
-        !this.state.user ? <span className='status-loading'>Signing in...</span>
-        : null}
-      </div>
-      <div className='top-options'>
-        {this.state.showSettings ? <span className='settings-content'>
-          {this.state.user ? <span>
-            <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
-            <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
-          </span> : null}
-          <span className='dim'>Version: </span>{pkg.version}<br/>
-          <hr/>
-          Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
-          Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
-          Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
-          Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
-          <a className='logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
-        </span> : null}
-        <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
-      </div>
-      <div className='gradient'></div>
-      <div className='desktop-mask'></div>
-      <div className='content'>
-        {this.state.zones ? <div>
-            {this.dates()}
-            <div className='zones'>
-              {this.state.zones.map(this.zone)}
-            </div>
-            <div className='col-options'>
-              <span className='box'>
-                <span className='box option col-option' onClick={this.addRow}>+</span>
-              </span>
-            </div>
+      {this.state.tutorial ?
+
+        // tutorial
+        <div className='tutorial-container'>
+          <div className='tutorial'>
+            <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
+            <p className='tutorial-text'>
+              Keep track of habits! <span className='tutorial-colored-text tutorial-red'>Red</span>, <span className='tutorial-colored-text tutorial-yellow'>yellow</span>, <span className='tutorial-colored-text tutorial-green'>green</span>—you choose what each one means!<br/>
+              <a className='tutorial-button' onClick={this.endTutorial}>Let's Go!</a>
+            </p>
           </div>
-          : <p className='loading'>Loading data...</p>
-        }
-      </div>
+        </div> :
+
+        // main content
+        <div>
+          <div className='status'>
+            {this.state.offline ? <span className='status-offline'>Working Offline</span> :
+            !this.state.user ? <span className='status-loading'>Signing in...</span>
+            : null}
+          </div>
+          <div className='top-options'>
+            {this.state.showSettings ? <span className='settings-content'>
+              {this.state.user ? <span>
+                <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
+                <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
+              </span> : null}
+              <span className='dim'>Version: </span>{pkg.version}<br/>
+              <hr/>
+              Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
+              Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+              Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
+              Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
+              <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
+              <a className='settings-logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
+            </span> : null}
+            <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
+          </div>
+          <div className='gradient'></div>
+          <div className='desktop-mask'></div>
+          <div className='content'>
+            {this.state.zones ? <div>
+                {this.dates()}
+                <div className='zones'>
+                  {this.state.zones.map(this.zone)}
+                </div>
+                <div className='col-options'>
+                  <span className='box'>
+                    <span className='box option col-option' onClick={this.addRow}>+</span>
+                  </span>
+                </div>
+              </div>
+              : <p className='loading'>Loading data...</p>
+            }
+          </div>
+        </div>
+      }
     </div>
   }
 

@@ -1,5 +1,6 @@
 a {
   cursor: pointer;
+  color: #0000dd;
 }
 
 hr {
@@ -34,6 +35,51 @@ hr {
 .dim {
   color: #aaa;
 }
+
+.tutorial-container {
+  padding: 16px;
+}
+
+.tutorial {
+  box-shadow: 3px 3px 12px 0 #ccc;
+  max-width: 80%;
+  max-width: 320px;
+  margin: 40px auto;
+  overflow: hidden;
+  line-height: 1.4;
+  background-color: #eee;
+  text-align: center;
+}
+
+.tutorial-image {
+  width: 100%;
+  opacity: 0.8;
+  box-shadow: none;
+  display: block;
+}
+
+.tutorial-text {
+  margin: 0;
+  padding: 20px;
+  background-color: #66fee90a;
+}
+
+.tutorial-button {
+  color: white;
+  background-color: #58BB8A;
+  width: 50%;
+  padding: 10px;
+  text-align: center;
+  display: inline-block;
+  border-radius: 999px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.tutorial-colored-text { padding: 2px; }
+.tutorial-green { background-color: #58BB8A; color: white; }
+.tutorial-yellow { background-color: #FED666; }
+.tutorial-red { background-color: #E5737C; color: white; }
 
 .gradient {
   position: fixed;
@@ -84,9 +130,13 @@ hr {
   user-select: none;
 }
 
-.logout {
-  color: #E5737C;
+.settings-content a {
   font-size: 80%;
+  margin-right: 5px;
+}
+
+.settings-logout {
+  color: #E5737C;
   margin-right: 5px;
 }
 
