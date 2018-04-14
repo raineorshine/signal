@@ -409,7 +409,7 @@ class App extends Component {
       {
         // tutorial
         this.state.tutorial ? <div className='popup-container'>
-          <div className='popup'>
+          <div className='popup tutorial-popup'>
             <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
             <p className='tutorial-text'>
               Keep track of habits! <span className='tutorial-colored-text tutorial-red'>Red</span>, <span className='tutorial-colored-text tutorial-yellow'>yellow</span>, <span className='tutorial-colored-text tutorial-green'>green</span>—you choose what each one means!<br/>

@@ -61,10 +61,6 @@ hr {
   background-color: white;
 }
 
-.night .popup {
-  background-color: black;
-}
-
 /** additional specificity needed to override night mode link selector*/
 a.button {
   color: white;
@@ -78,7 +74,7 @@ a.button {
   cursor: pointer;
 }
 
-.popup-tutorial {
+.tutorial-popup {
   background-color: #eee;
 }
 
@@ -86,11 +82,20 @@ a.button {
   background-color: rgba(0,0,0,.2);
 }
 
+.night .note-container {
+  background-color: black;
+}
+
 .note-popup {
   position: relative;
   padding: 20px;
   height: calc(100% - 120px);
   margin-top: 20px;
+}
+
+.night .note-popup {
+  background-color: black;
+  box-shadow: none;
 }
 
 .note-label {
@@ -127,6 +132,11 @@ a.note-button {
 
 .note-text:focus {
   outline: none;
+}
+
+.night .note-text {
+  color: white;
+  background-color: black;
 }
 
 .tutorial-image {
