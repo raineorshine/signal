@@ -433,8 +433,8 @@ class App extends Component {
               </span> : null}
               <span className='dim'>Version: </span>{pkg.version}<br/>
               <hr/>
-              Mark today with faded color: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
-              Mark all checkins with dot: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+              Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
+              Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
               Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
               Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
               <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
@@ -498,6 +498,8 @@ class App extends Component {
   }
 
   checkin(c, i, z) {
+    const hasManualCheckin = this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i]
+    const hasNote = z.notes && z.notes[z.checkins.length - i - 1]
     return <ClickNHold
       key={i}
       className='clicknhold'
@@ -518,9 +520,11 @@ class App extends Component {
           this.changeState(z, i)
         }
       }}
-    ><span className={'box checkin checkin' + c + (i === 0 && this.state.showFadedToday && (!z.manualCheckins || !z.manualCheckins[z.checkins.length]) ? ' faded' : '')}>
-      {this.state.showCheckins && z.manualCheckins && z.manualCheckins[z.checkins.length - i] ? <span className='manualCheckin'></span> : null}
-      {z.notes && z.notes[z.checkins.length - i - 1] ? <span className='note-marker'></span> : null}
+    ><span className={'box checkin checkin' + c + (
+      // today
+      (this.state.showFadedToday && i === 0 || this.state.showCheckins) &&
+      (!z.manualCheckins || !z.manualCheckins[z.checkins.length - i]) ? ' faded' : '')}>
+      {hasNote ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
 
