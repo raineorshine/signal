@@ -149,7 +149,7 @@ class App extends Component {
     })
 
     window.addEventListener('mousemove', () => {
-      this.setState({ disableClickNHold: true })
+      this.setState({ disableClick: true })
     })
 
     // check if user is logged in
@@ -519,11 +519,11 @@ class App extends Component {
       time={0.5}
       onStart={(e) => {
         this.setState({
-          disableClickNHold: false
+          disableClick: false
         })
       }}
       onClickNHold={() => {
-        if (!this.state.disableClickNHold) {
+        if (!this.state.disableClick) {
           this.setState({
             noteEdit: { z, i }
           })
@@ -540,16 +540,16 @@ class App extends Component {
       onEnd={(e, enough) => {
         // normal click event
         // treat mouse event as duplicate and ignore if on a touchscreen
-        if (!enough && !(this.state.touch && e.type === 'mouseup')) {
+        if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
           this.changeState(z, i)
         }
 
         // must be disableed to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
         this.setState({
-          disableClickNHold: true
+          disableClick: true
         })
       }}
-    ><span onTouchMove={() => this.setState({ disableClickNHold: true })} className={'box checkin checkin' + c + (
+    ><span onTouchMove={() => this.setState({ disableClick: true })} className={'box checkin checkin' + c + (
       // today
       ((this.state.showFadedToday && i === 0) || this.state.showCheckins) &&
       (!z.manualCheckins || !z.manualCheckins[z.checkins.length - i]) ? ' faded' : '')}>
