@@ -228,6 +228,7 @@ a.settings-logout {
 
 .zones {
   position: relative;
+  padding-bottom: 70px; /* room for col-options. */
 }
 
 @media only screen and (min-width: 480px) {

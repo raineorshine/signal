@@ -473,11 +473,11 @@ class App extends Component {
                 {this.dates()}
                 <div className='zones'>
                   {this.state.zones.map(this.zone)}
-                </div>
-                <div className='left-controls col-options'>
-                  <span className='box'>
-                    <span className='box option col-option' onClick={this.addRow}>+</span>
-                  </span>
+                  <div className='left-controls col-options' style={{ top: 115 + this.state.zones.length * 50 - this.state.scrollY }}>
+                    <span className='box'>
+                      <span className='box option col-option' onClick={this.addRow}>+</span>
+                    </span>
+                  </div>
                 </div>
               </div>
               : <p className='loading'>Loading data...</p>
