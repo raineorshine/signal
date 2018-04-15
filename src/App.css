@@ -338,13 +338,29 @@ a.settings-logout {
   }
 }
 
-.settings-active .col-options {
-  margin-left: 160px; /* +93px */
-}
-
 .dates {
   color: #DDD;
   line-height: 65px;
+  position: relative; /* for .dates-mask */
+}
+
+.dates-mask {
+  background-color: white;
+  width: 77px; /* .left-controls width */
+  position: fixed;
+  height: 100%; /* overlap to avoid jitter */
+  left: 0;
+  z-index: 1; /* above dates but below labels */
+}
+
+@media only screen and (min-width: 480px) {
+  .dates-mask {
+    padding-left: 20%;
+  }
+}
+
+.night .dates-mask {
+  background-color: black;
 }
 
 .night .dates {
@@ -366,26 +382,13 @@ a.settings-logout {
 }
 
 @media only screen and (min-width: 480px) {
-  .col-options, .dates {
+  .dates {
     margin-left: calc(20% + 77px);
   }
 }
 
-.settings-active .checkins,
-.settings-active .col-options {
+.settings-active .checkins {
   margin-left: 180px; /* +93px for visible .row-options */
-}
-
-/* elements that expand when settings are owen */
-.col-options {
-  margin-left: 20px; /* relative to .left-controls: 57px width + 20px padding-left */
-  transition: margin-left 250ms; /* match .row-options expand */
-}
-
-@media only screen and (min-width: 480px) {
-  .col-options {
-    margin-left: calc(20% + 20px);
-  }
 }
 
 .settings-active .dates {
@@ -395,16 +398,6 @@ a.settings-logout {
 @media only screen and (min-width: 480px) {
   .settings-active .dates {
     margin-left: calc(20% + 180px);
-  }
-}
-
-.settings-active .col-options {
-  margin-left: 120px; /* +93px for visible .row-options */
-}
-
-@media only screen and (min-width: 480px) {
-  .settings-active .col-options {
-    margin-left: calc(20% + 120px);
   }
 }
 
@@ -436,6 +429,15 @@ a.settings-logout {
   margin-left: 5px;
   display: inline-block; /* to allow vertical alignment */
   vertical-align: middle /* required on .row-options and .option-row */
+}
+
+.col-options {
+  margin: 0;
+  transition: margin-left 250ms;
+}
+
+.settings-active .col-options {
+  margin-left: 100px;
 }
 
 .col-option {

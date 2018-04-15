@@ -474,7 +474,7 @@ class App extends Component {
                 <div className='zones'>
                   {this.state.zones.map(this.zone)}
                 </div>
-                <div className='col-options'>
+                <div className='left-controls col-options'>
                   <span className='box'>
                     <span className='box option col-option' onClick={this.addRow}>+</span>
                   </span>
@@ -561,6 +561,7 @@ class App extends Component {
     const sampleCheckins = this.state.zones[0].checkins || []
 
     return <div className='dates'>
+      <div className='box dates-mask' style={{ top: 65 - this.state.scrollY }}></div>
       {sampleCheckins.map((checkin, i) => {
         const date = moment(this.state.startDate).add(sampleCheckins.length - i - 1, 'days')
         return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
