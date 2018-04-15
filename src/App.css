@@ -47,6 +47,10 @@ hr {
   margin: 0 auto;
 }
 
+.night .popup-container {
+  background-color: transparent;
+}
+
 .popup {
   box-shadow: 3px 3px 12px 0 #aaa;
   max-width: 80%;
