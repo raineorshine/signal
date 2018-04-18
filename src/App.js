@@ -38,17 +38,25 @@ firebase.initializeApp(firebaseConfig)
 window.__DEBUG = {}
 window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
+const localGet = key => localStorage[localStorage.latestUid + '.' + key]
+const localGetTemp = key => localStorage['temp.' + key]
+const localSet = (key, value) => localStorage[localStorage.latestUid + '.' + key] = value
+
 // init localStorage
-if (!localStorage.zones) {
-  localStorage.zones = defaultZones
+if (!localStorage.latestUid) {
+  localStorage.latestUid = 'temp'
 }
 
-if (!localStorage.showFadedToday) {
-  localStorage.showFadedToday = 'true'
+if (!localGet('zones')) {
+  localSet('zones', defaultZones)
+}
+
+if (!localGet('showFadedToday')) {
+  localSet('showFadedToday', 'true')
 }
 
 // manually add/remove class to body since it's outside the target element of render
-document.body.classList[localStorage.night === 'true' ? 'add' : 'remove']('night')
+document.body.classList[localGet('night') === 'true' ? 'add' : 'remove']('night')
 
 /**************************************************************
  * Helper functions
@@ -115,17 +123,17 @@ class App extends Component {
     super()
 
     // load data immediately from localStorage
-    const defaultStartDate = localStorage.startDate || moment().subtract(6, 'days').toISOString()
-    const startZones = fill(JSON.parse(localStorage.zones || defaultZones), defaultStartDate)
+    const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
+    const startZones = fill(JSON.parse(localGet('zones') || defaultZones), defaultStartDate)
     this.state = {
       zones: startZones,
       startDate: defaultStartDate,
-      showCheckins: localStorage.showCheckins === 'true',
-      showFadedToday: localStorage.showFadedToday === 'true',
-      night: localStorage.night === 'true',
+      showCheckins: localGet('showCheckins') === 'true',
+      showFadedToday: localGet('showFadedToday') === 'true',
+      night: localGet('night') === 'true',
       scrollY: window.scrollY,
       // start the tutorial if the user has not checked in yet
-      tutorial: !localStorage.lastUpdated
+      tutorial: !localGet('lastUpdated')
     }
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
@@ -173,6 +181,18 @@ class App extends Component {
         user
       })
 
+      // set latest uid so that offline data is loaded from last user
+      // do NOT use localSet (because latestUid is not namespaced by itself)
+      // if this is the first login for the user, copy over from temp
+      localStorage.latestUid = user.uid
+      if (!localGet('zones')) {
+        localSet('zones', localGetTemp('zones'))
+        localSet('showFadedToday', localGetTemp('zones'))
+        localSet('showCheckins', localGetTemp('zones'))
+        localSet('night', localGetTemp('zones'))
+        localSet('startDate', localGetTemp('zones'))
+      }
+
       // load Firebase data
       userRef.on('value', snapshot => {
         const value = snapshot.val()
@@ -201,7 +221,7 @@ class App extends Component {
           this.saveStartDate(startDate, true)
 
           // if Firebase data is newer than stored data, update localStorage
-          if (value.lastUpdated > (localStorage.lastUpdated || 0)) {
+          if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
             this.saveZones(fill(value.zones), true, startDate)
           }
           // do nothing if Firebase data is older than stored data
@@ -243,7 +263,7 @@ class App extends Component {
     this.setState({ showFadedToday: value }, () => {
 
       // update localStorage
-      localStorage.showFadedToday = JSON.stringify(value)
+      localSet('showFadedToday', JSON.stringify(value))
 
       // update Firebase
       if (!localOnly) {
@@ -257,7 +277,7 @@ class App extends Component {
     this.setState({ showCheckins: value }, () => {
 
       // update localStorage
-      localStorage.showCheckins = JSON.stringify(value)
+      localSet('showCheckins', JSON.stringify(value))
 
       // update Firebase
       if (!localOnly) {
@@ -275,7 +295,7 @@ class App extends Component {
     this.setState({ night: value }, () => {
 
       // update localStorage
-      localStorage.night = JSON.stringify(value)
+      localSet('night', JSON.stringify(value))
 
       // do not sync this settings to Firebase (per-device)
     })
@@ -286,7 +306,7 @@ class App extends Component {
     this.setState({ startDate }, () => {
 
       // update localStorage
-      localStorage.startDate = startDate
+      localSet('startDate', startDate)
 
       // update Firebase
       if (!localOnly) {
@@ -301,10 +321,10 @@ class App extends Component {
     this.setState({ zones }, () => {
 
       // update localStorage
-      localStorage.zones = JSON.stringify(zones)
+      localSet('zones', JSON.stringify(zones))
 
       if (!localOnly) {
-        localStorage.lastUpdated = Date.now()
+        localSet('lastUpdated', Date.now())
 
         // update Firebase
         this.state.userRef.update({
