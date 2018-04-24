@@ -183,6 +183,15 @@ class App extends Component {
         user
       })
 
+      // delay presence to avoid initial disconnected state
+      setTimeout(() => {
+        const connectedRef = firebase.database().ref(".info/connected")
+        connectedRef.on('value', snap => {
+          const connected = snap.val()
+          this.setState({ offline: !connected })
+        })
+      }, 1000)
+
       // set latest uid so that offline data is loaded from last user
       // do NOT use localSet (because latestUid is not namespaced by itself)
       // if this is the first login for the user, copy over from temp
