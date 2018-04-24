@@ -147,9 +147,10 @@ class App extends Component {
       this.setState({ scrollY: window.scrollY })
     })
 
+    // keyboard shortcuts
     window.addEventListener('keydown', e => {
-      // close all popups if the escape key is hit
-      if (e.keyCode === 27) {
+      // close all popups if the escape key OR Cmd+Enter OR Control+Enter is hit
+      if (e.keyCode === 27 || (e.keyCode === 13 && e.metaKey)) {
         this.setState({
           noteEdit: null,
           tutorial: false
