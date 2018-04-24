@@ -183,12 +183,22 @@ class App extends Component {
         user
       })
 
-      // delay presence to avoid initial disconnected state
+      // delay presence detection to avoid initial disconnected state
       setTimeout(() => {
         const connectedRef = firebase.database().ref(".info/connected")
         connectedRef.on('value', snap => {
           const connected = snap.val()
+
+          // update offline state
           this.setState({ offline: !connected })
+
+          // when reconnecting, if there are missing days, fill them in
+          if (connected) {
+            const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.zones[0].checkins.length + 1
+            if (missingDays > 0) {
+              this.saveZones(fill(this.state.zones, this.state.startDate))
+            }
+          }
         })
       }, 1000)
 
@@ -228,6 +238,7 @@ class App extends Component {
             this.toggleShowFadedToday(value.showFadedToday, true)
           }
 
+          // save start date or legacy start date
           const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
           this.saveStartDate(startDate, true)
 
