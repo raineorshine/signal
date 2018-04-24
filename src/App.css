@@ -41,7 +41,7 @@ hr {
 }
 
 .popup-container {
-  width: calc(100% - 32px); /* -padding */
+  width: calc(100vw - 32px); /* -padding. Use vw units here because sometimes the width is inordinately large (e.g. 1500px and % breaks. */
   height: 100%;
   background-color: rgba(255,255,255,0.7);
   margin: 0 auto;
