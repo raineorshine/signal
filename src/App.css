@@ -252,6 +252,7 @@ a.settings-logout {
   transition: background-color 150ms linear;
   vertical-align: bottom;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
+  backface-visibility: hidden; /* improves mobile zoom gridlines issue */
 }
 
 .checkin {
