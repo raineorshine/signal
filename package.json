@@ -3,6 +3,7 @@
   "version": "19.0.0",
   "private": true,
   "dependencies": {
+    "lodash.throttle": "^4.1.1",
     "moment": "^2.21.0",
     "react": "^16.2.0",
     "react-click-n-hold": "^1.0.6",

@@ -1,9 +1,10 @@
 import React, { Component } from 'react'
 import './App.css'
 import * as moment from 'moment'
+import * as throttle from 'lodash.throttle'
+import ClickNHold from 'react-click-n-hold'
 import * as pkg from '../package.json'
 import tutorialImg from './tutorial.png'
-import ClickNHold from 'react-click-n-hold'
 
 /**************************************************************
  * Setup
@@ -244,6 +245,7 @@ class App extends Component {
     this.addColumn = this.addColumn.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
+    this.editNoteThrottled = throttle(this.editNote, 1000, { leading: false })
   }
 
   /**************************************************************
@@ -481,7 +483,7 @@ class App extends Component {
             <div className='popup note-popup'>
               <p className='note-label'>{this.state.noteEdit.z.label}</p>
               <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
-              <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
+              <textarea className='note-text' onInput={(e) => this.editNoteThrottled(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
               <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
             </div>
           </div> : null}
