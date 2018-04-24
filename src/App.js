@@ -496,11 +496,12 @@ class App extends Component {
                 {this.dates()}
                 <div className='zones'>
                   {this.state.zones.map(this.zone)}
-                  <div className='left-controls col-options' style={{ top: 115 + this.state.zones.length * 50 - this.state.scrollY }}>
+                  { // move col-options to settlings if enough habits and two weeks of checkins
+                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: 115 + this.state.zones.length * 50 - this.state.scrollY }}>
                     <span className='box'>
                       <span className='box option col-option' onClick={this.addRow}>+</span>
                     </span>
-                  </div>
+                  </div> : null}
                 </div>
               </div>
               : <p className='loading'>Loading data...</p>
