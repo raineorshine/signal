@@ -1,3 +1,7 @@
+html, body, #root, #app {
+  height: 100%;
+}
+
 a {
   cursor: pointer;
   color: #0000dd;
@@ -42,9 +46,10 @@ hr {
 
 .popup-container {
   width: calc(100vw - 32px); /* -padding. Use vw units here because sometimes the width is inordinately large (e.g. 1500px and % breaks. */
-  height: 100%;
-  background-color: rgba(255,255,255,0.7);
+  height: calc(100vh - 32px);
+  background-color: rgba(0,0,0,.2);
   margin: 0 auto;
+  padding: 16px;
 }
 
 .night .popup-container {
@@ -76,8 +81,6 @@ a.button {
 }
 
 .note-container {
-  background-color: rgba(0,0,0,.2);
-  padding: 16px;
   position: fixed;
   top: 0;
   z-index: 20;
@@ -89,10 +92,17 @@ a.button {
 
 .note-popup {
   position: relative;
-  padding: 20px;
-  height: calc(100% - 120px);
-  max-height: calc(100vh - 120px);
-  margin-top: 20px;
+  height: calc(100% - 20px);
+  max-height: calc(100vh - 20px);
+  margin-top: 10px;
+}
+
+@media only screen and (min-width: 480px) {
+  .note-popup {
+    margin-top: 10vh;
+    height: calc(100% - 20vh);
+    max-height: calc(100vh - 10vh);
+  }
 }
 
 .night .note-popup {
