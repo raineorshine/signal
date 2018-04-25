@@ -91,6 +91,7 @@ a.button {
   position: relative;
   padding: 20px;
   height: calc(100% - 120px);
+  max-height: calc(100vh - 120px);
   margin-top: 20px;
 }
 
