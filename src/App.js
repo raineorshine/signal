@@ -519,7 +519,7 @@ class App extends Component {
                 <div className='zones'>
                   {this.state.zones.map(this.zone)}
                   { // move col-options to settlings if enough habits and two weeks of checkins
-                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: 115 + this.state.zones.length * 50 - this.state.scrollY }}>
+                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: 65 + this.state.zones.length * 50 - this.state.scrollY }}>
                     <span className='box'>
                       <span className='box option col-option' onClick={this.addRow}>+</span>
                     </span>
@@ -536,7 +536,7 @@ class App extends Component {
 
   zone(z, i) {
     return <div className='zone' key={z.label}>
-      <span className='left-controls' style={{ top: 115 + i*50 - this.state.scrollY }}>
+      <span className='left-controls' style={{ top: 65 + i*50 - this.state.scrollY }}>
         <span className='row-options'>
           { i > 0
             ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
