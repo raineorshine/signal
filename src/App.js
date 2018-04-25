@@ -244,7 +244,7 @@ class App extends Component {
 
           // if Firebase data is newer than stored data, update localStorage
           if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.saveZones(fill(value.zones), true, startDate)
+            this.saveZones(fill(value.zones, startDate), true)
           }
           // do nothing if Firebase data is older than stored data
         }
