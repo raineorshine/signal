@@ -463,8 +463,8 @@ class App extends Component {
       // keep track of touch devices so that we can disable duplicate touch/mousedown events
       onTouchStart={() => this.setState({ touch: true })}
     >
-      {
-        // tutorial
+
+      { // tutorial
         this.state.tutorial ? <div className='popup-container tutorial-container' onClick={() => this.setState({ tutorial: false })}>
           <div className='popup tutorial-popup'>
             <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
@@ -473,10 +473,21 @@ class App extends Component {
               <a className='button tutorial-button'>Let's Go!</a>
             </p>
           </div>
-        </div> :
+        </div> : null}
 
-        // main content
-        <div>
+      { // notes
+        this.state.noteEdit ? <div className='popup-container note-container'>
+        <div className='popup note-popup'>
+          <p className='note-label'>{this.state.noteEdit.z.label}</p>
+          <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
+          <textarea className='note-text' onInput={(e) => this.editNoteThrottled(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
+          <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
+        </div>
+      </div> : null}
+
+      { // main content
+        // do not render in background of notes on mobile; causes feint gridlines to appear when note closes
+        !this.state.tutorial && !(this.state.touch && this.state.noteEdit) ? <div>
           <div className='status'>
             {this.state.offline ? <span className='status-offline'>Working Offline</span> :
             !this.state.user ? <span className='status-loading'>Signing in...</span>
@@ -500,15 +511,6 @@ class App extends Component {
             <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
           </div>
 
-          {this.state.noteEdit ? <div className='popup-container note-container'>
-            <div className='popup note-popup'>
-              <p className='note-label'>{this.state.noteEdit.z.label}</p>
-              <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
-              <textarea className='note-text' onInput={(e) => this.editNoteThrottled(this.state.noteEdit.z, this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
-              <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
-            </div>
-          </div> : null}
-
           <div className='gradient'></div>
           <div className='desktop-mask'></div>
           <div className='content'>
@@ -527,7 +529,7 @@ class App extends Component {
               : <p className='loading'>Loading data...</p>
             }
           </div>
-        </div>
+        </div> : null
       }
     </div>
   }
