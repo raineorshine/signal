@@ -11,6 +11,10 @@ hr {
   opacity: 0.4;
 }
 
+#app {
+  overflow: hidden; /* prevent margin-top of .content from pushing #app down */
+}
+
 .app {
   font-weight: 300;
 }
@@ -366,6 +370,7 @@ a.settings-logout {
   position: fixed;
   height: 100%; /* overlap to avoid jitter */
   left: 0;
+  top: 0;
   z-index: 1; /* above dates but below labels */
 }
 

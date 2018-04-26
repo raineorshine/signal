@@ -133,6 +133,7 @@ class App extends Component {
       showFadedToday: localGet('showFadedToday') === 'true',
       night: localGet('night') === 'true',
       scrollY: window.scrollY,
+      windowHeight: window.innerHeight,
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
     }
@@ -145,6 +146,12 @@ class App extends Component {
     // update scroll for fixing position:fixed controls
     window.addEventListener('scroll', () => {
       this.setState({ scrollY: window.scrollY })
+    })
+
+    // update scroll for fixing position:fixed controls
+    window.addEventListener('resize', () => {
+      // NOTE: window.innerHeight doesn't update properly in the Chrome mobile simulator when switching orientation
+      this.setState({ windowHeight: window.innerHeight })
     })
 
     // keyboard shortcuts
@@ -456,6 +463,10 @@ class App extends Component {
    **************************************************************/
 
   render() {
+    // used to vertically center the content
+    const contentHeight = this.state.zones.length * 50
+    const marginTop = Math.max(0, (window.innerHeight - contentHeight)/2 - 65)
+
     return <div
       className={'app' +
         (this.state.clearCheckin ? ' clear-checkin' : '') +
@@ -513,13 +524,13 @@ class App extends Component {
 
           <div className='gradient'></div>
           <div className='desktop-mask'></div>
-          <div className='content'>
+          <div className='content' style={{ marginTop }}>
             {this.state.zones ? <div>
                 {this.dates()}
                 <div className='zones'>
                   {this.state.zones.map(this.zone)}
                   { // move col-options to settlings if enough habits and two weeks of checkins
-                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: 65 + this.state.zones.length * 50 - this.state.scrollY }}>
+                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + this.state.zones.length * 50 - this.state.scrollY }}>
                     <span className='box'>
                       <span className='box option col-option' onClick={this.addRow}>+</span>
                     </span>
@@ -535,8 +546,11 @@ class App extends Component {
   }
 
   zone(z, i) {
+    const contentHeight = this.state.zones.length * 50
+    const marginTop = Math.max(65, (this.state.windowHeight - contentHeight)/2)
+    const top = marginTop + i*50 - this.state.scrollY
     return <div className='zone' key={z.label}>
-      <span className='left-controls' style={{ top: 65 + i*50 - this.state.scrollY }}>
+      <span className='left-controls' style={{ top }}>
         <span className='row-options'>
           { i > 0
             ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
@@ -607,7 +621,7 @@ class App extends Component {
     const sampleCheckins = this.state.zones[0].checkins || []
 
     return <div className='dates'>
-      <div className='box dates-mask' style={{ top: 65 - this.state.scrollY }}></div>
+      <div className='box dates-mask'></div>
       {sampleCheckins.map((checkin, i) => {
         const date = moment(this.state.startDate).add(sampleCheckins.length - i - 1, 'days')
         return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
