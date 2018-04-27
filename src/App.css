@@ -116,7 +116,7 @@ a.button {
 
 .note-label {
   font-size: 48px;
-  margin: 0;
+  margin: 20px 0 0 0;
 }
 
 .note-date {
@@ -136,7 +136,7 @@ a.note-button {
   border: none;
   display: block;
   width: calc(100% - 40px);
-  height: calc(100% - 200px);
+  height: calc(100% - 220px);
   margin: -110px auto 10px auto; /* negative margin for mobile keyboard alignment. */
   min-height: 100px;
   line-height: 1.5;

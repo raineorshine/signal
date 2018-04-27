@@ -160,6 +160,7 @@ class App extends Component {
       if (e.keyCode === 27 || (e.keyCode === 13 && e.metaKey)) {
         this.setState({
           noteEdit: null,
+          noteEditReady: false,
           tutorial: false
         })
       }
@@ -497,7 +498,7 @@ class App extends Component {
           <p className='note-label'>{this.state.noteEdit.z.label}</p>
           <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
           <textarea className='note-text' onInput={(e) => this.editNoteThrottled(this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
-          <a className='button note-button' onClick={() => this.setState({ noteEdit: null})}>Close</a>
+          <a className='button note-button' onClick={this.state.noteEditReady ? () => this.setState({ noteEdit: null, noteEditReady: false }) : null}>Close</a>
         </div>
       </div> : null}
 
@@ -593,12 +594,19 @@ class App extends Component {
             noteEdit: { z, i }
           })
 
-          // focus (after render)
+          // delayed actions
           window.setTimeout(() => {
+            // focus on text box
             const noteText = document.querySelector('.note-text')
             if (noteText) {
               noteText.focus()
             }
+
+            // enable close button
+            // if this is not delayed, then overlapping touch events on the bottom rows cause the notes to accidentally close immediately after opening
+            this.setState({
+              noteEditReady: true
+            })
           }, 350)
         }
       }}
