@@ -197,8 +197,8 @@ a.note-button {
   display: none;
   position: fixed;
   top: 0;
-  right: 0;
-  width: 20%;
+  right: -20%; /* extend beyond right edge to prevent overflow on iPhone X */
+  width: 40%;
   background-color: white;
   z-index: 10;
   height: 100%;
@@ -343,8 +343,8 @@ a.settings-logout {
 .left-controls {
   position: fixed;
   z-index: 1;
-  left: 0;
-  padding-left: 20px;
+  left: -20%; /* extend beyond right edge to prevent overflow on iPhone X */
+  padding-left: calc(20px + 20%);
   background-color: white;
 }
 
@@ -354,7 +354,7 @@ a.settings-logout {
 
 @media only screen and (min-width: 480px) {
   .left-controls {
-    padding-left: calc(20% + 20px);
+    padding-left: calc(40% + 20px);
   }
 }
 
