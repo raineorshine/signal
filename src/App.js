@@ -19,7 +19,7 @@ const firebaseConfig = {
   messagingSenderId: "918887966885"
 }
 
-const [/*STATE_RED*/, /*STATE_YELLOW*/, /*STATE_GREEN*/, STATE_NULL] = [-1,0,1,2]
+const [/*STATE_RED*/, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultZones = JSON.stringify([{
@@ -379,12 +379,12 @@ class App extends Component {
       // clear checkin tool
       this.state.clearCheckin ||
       // if today, rotate through decayed checkin
-      // (add rotation after decayed checkin matches next checkin)
-      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && z.checkins[i] === decayedCheckin && !prevCheckinNull)
+      // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
+      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && (decayedCheckin === STATE_GREEN ? z.checkins[i] === STATE_YELLOW : z.checkins[i] === decayedCheckin) && !prevCheckinNull)
 
     // set new checkin and manual checkin
     z.checkins.splice(i, 1, useDecayedCheckin ? decayedCheckin :
-      prevCheckinNull ? promoteWithNull(z.checkins[i]) : promote(z.checkins[i]))
+      prevCheckinNull ? promoteWithNull(z.checkins[i]) : /* modified rotation for decayed green*/(decayedCheckin === STATE_GREEN && z.checkins[i] === STATE_GREEN && !z.manualCheckins[z.checkins.length - i] ? STATE_GREEN : promote(z.checkins[i])))
     z.manualCheckins[z.checkins.length - i] = !useDecayedCheckin
 
     this.saveZones()
