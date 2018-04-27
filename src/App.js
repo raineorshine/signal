@@ -608,6 +608,11 @@ class App extends Component {
         if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
           this.changeState(z, i)
         }
+        else if(enough) {
+          // presents overlapping note close button from being inadvertently clicked
+          e.preventDefault()
+          e.stopPropagation()
+        }
 
         // must be disableed to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
         this.setState({
