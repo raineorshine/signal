@@ -166,7 +166,9 @@ class App extends Component {
     })
 
     window.addEventListener('mousemove', () => {
-      this.setState({ disableClick: true })
+      if (!this.state.disableClick) {
+        this.setState({ disableClick: true })
+      }
     })
 
     // check if user is logged in
