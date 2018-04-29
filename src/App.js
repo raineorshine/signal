@@ -71,16 +71,16 @@ const demote = c => (c - 2) % 3 + 1
 // const demoteNoWrap = c => c > -1 ? c - 1 : -1
 
 /** Return a new checkin for a given zone with potential decay */
-const checkinWithDecay = (zone, i=0) => {
-  if (zone.decay && zone.checkins[i] > -1) {
+const checkinWithDecay = (zone, ci=0) => {
+  if (zone.decay && zone.checkins[ci] > -1) {
     // check if the decay rate has been met
     // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
-    const checkinsInDecayZone = zone.checkins.slice(i, i + zone.decay)
+    const checkinsInDecayZone = zone.checkins.slice(ci, ci + zone.decay)
     const readyToDecay = same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
-    return readyToDecay ? demote(zone.checkins[i]) : zone.checkins[i]
+    return readyToDecay ? demote(zone.checkins[ci]) : zone.checkins[ci]
   }
   else {
-    return zone.checkins[i]
+    return zone.checkins[ci]
   }
 }
 
@@ -88,7 +88,7 @@ const checkinWithDecay = (zone, i=0) => {
 const same = list => list.reduce((prev, next) => prev === next ? next : false) !== false
 
 /** Returns true if none of the given checkins have a manual checkin. */
-const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c,i) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - i + 1]))
+const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c, ci) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - ci + 1]))
 
 /** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
 const getNewColumn = zones => {
@@ -370,23 +370,23 @@ class App extends Component {
   }
 
   // toggle the state of a checkin
-  changeState(z, i) {
+  changeState(z, ci) {
     z.manualCheckins = z.manualCheckins || {}
 
     // get conditions and values for determining a decayed checkin
-    const decayedCheckin = checkinWithDecay(z, i+1)
-    const prevCheckinNull = z.checkins[i+1] === undefined || z.checkins[i+1] === STATE_NULL
+    const decayedCheckin = checkinWithDecay(z, ci+1)
+    const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
     const useDecayedCheckin =
       // clear checkin tool
       this.state.clearCheckin ||
       // if today, rotate through decayed checkin
       // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
-      (i === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - i] && (decayedCheckin === STATE_GREEN ? z.checkins[i] === STATE_YELLOW : z.checkins[i] === decayedCheckin) && !prevCheckinNull)
+      (ci === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - ci] && (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin) && !prevCheckinNull)
 
     // set new checkin and manual checkin
-    z.checkins.splice(i, 1, useDecayedCheckin ? decayedCheckin :
-      prevCheckinNull ? promoteWithNull(z.checkins[i]) : /* modified rotation for decayed green*/(decayedCheckin === STATE_GREEN && z.checkins[i] === STATE_GREEN && !z.manualCheckins[z.checkins.length - i] ? STATE_GREEN : promote(z.checkins[i])))
-    z.manualCheckins[z.checkins.length - i] = !useDecayedCheckin
+    z.checkins.splice(ci, 1, useDecayedCheckin ? decayedCheckin :
+      prevCheckinNull ? promoteWithNull(z.checkins[ci]) : /* modified rotation for decayed green*/(decayedCheckin === STATE_GREEN && z.checkins[ci] === STATE_GREEN && !z.manualCheckins[z.checkins.length - ci] ? STATE_GREEN : promote(z.checkins[ci])))
+    z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
 
     this.saveZones()
   }
@@ -425,17 +425,17 @@ class App extends Component {
 
   moveRowDown(z) {
     const zones = this.state.zones.concat()
-    const i = zones.indexOf(z)
-    zones.splice(i, 1)
-    zones.splice(i+1, 0, z)
+    const zi = zones.indexOf(z)
+    zones.splice(zi, 1)
+    zones.splice(zi+1, 0, z)
     this.saveZones(zones)
   }
 
   moveRowUp(z) {
     const zones = this.state.zones.concat()
-    const i = zones.indexOf(z)
-    zones.splice(i, 1)
-    zones.splice(i-1, 0, z)
+    const zi = zones.indexOf(z)
+    zones.splice(zi, 1)
+    zones.splice(zi-1, 0, z)
     this.saveZones(zones)
   }
 
@@ -635,9 +635,9 @@ class App extends Component {
 
     return <div className='dates'>
       <div className='box dates-mask'></div>
-      {sampleCheckins.map((checkin, i) => {
-        const date = moment(this.state.startDate).add(sampleCheckins.length - i - 1, 'days')
-        return <span key={i} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
+      {sampleCheckins.map((checkin, ci) => {
+        const date = moment(this.state.startDate).add(sampleCheckins.length - ci - 1, 'days')
+        return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
       })}
     </div>
   }
