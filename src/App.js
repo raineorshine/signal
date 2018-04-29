@@ -382,7 +382,9 @@ class App extends Component {
 
     // set new checkin and manual checkin
     z.checkins.splice(ci, 1, useDecayedCheckin ? decayedCheckin :
-      prevCheckinNull ? promoteWithNull(z.checkins[ci]) : /* modified rotation for decayed green*/(decayedCheckin === STATE_GREEN && z.checkins[ci] === STATE_GREEN && !z.manualCheckins[z.checkins.length - ci] ? STATE_GREEN : promote(z.checkins[ci])))
+      prevCheckinNull ? promoteWithNull(z.checkins[ci]) :
+      /* modified rotation for decayed green*/(z.checkins[ci] === STATE_GREEN && !z.manualCheckins[z.checkins.length - ci] ? STATE_GREEN :
+      promote(z.checkins[ci])))
     z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
 
     this.saveZones()
