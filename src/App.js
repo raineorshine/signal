@@ -266,7 +266,6 @@ class App extends Component {
     })
 
     this.toggleSettings = this.toggleSettings.bind(this)
-    this.toggleClearCheckin = this.toggleClearCheckin.bind(this)
     this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
     this.toggleNightMode = this.toggleNightMode.bind(this)
     this.zone = this.zone.bind(this)
@@ -285,10 +284,6 @@ class App extends Component {
 
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
-  }
-
-  toggleClearCheckin() {
-    this.setState({ clearCheckin: !this.state.clearCheckin })
   }
 
   toggleShowFadedToday(value, localOnly) {
@@ -378,12 +373,12 @@ class App extends Component {
     const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
     const showFaded = (this.state.showFadedToday && ci === 0) || this.state.showCheckins
 
-    const useDecayedCheckin =
-      // clear checkin tool
-      this.state.clearCheckin ||
-      // rotate through decayed checkin
-      // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
-      (showFaded && z.manualCheckins[z.checkins.length - ci] && (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin) && !prevCheckinNull)
+    // rotate through decayed checkin
+    // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
+    const useDecayedCheckin = showFaded &&
+      z.manualCheckins[z.checkins.length - ci] &&
+      !prevCheckinNull &&
+      (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin)
 
     // set new checkin and manual checkin
     z.checkins.splice(ci, 1, useDecayedCheckin ? decayedCheckin :
@@ -477,7 +472,6 @@ class App extends Component {
 
     return <div
       className={'app' +
-        (this.state.clearCheckin ? ' clear-checkin' : '') +
         (this.state.showSettings ? ' settings-active' : '')}
       // keep track of touch devices so that we can disable duplicate touch/mousedown events
       onTouchStart={() => this.setState({ touch: true })}
@@ -523,7 +517,6 @@ class App extends Component {
               Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
               Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
               Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
-              Clear checkin tool: <input type='checkbox' checked={this.state.clearCheckin} onChange={this.toggleClearCheckin} /><br />
               <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
               <a className='settings-logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
             </span> : null}
