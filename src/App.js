@@ -376,12 +376,14 @@ class App extends Component {
     // get conditions and values for determining a decayed checkin
     const decayedCheckin = checkinWithDecay(z, ci+1)
     const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
+    const showFaded = (this.state.showFadedToday && ci === 0) || this.state.showCheckins
+
     const useDecayedCheckin =
       // clear checkin tool
       this.state.clearCheckin ||
-      // if today, rotate through decayed checkin
+      // rotate through decayed checkin
       // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
-      (ci === 0 && this.state.showFadedToday && z.manualCheckins[z.checkins.length - ci] && (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin) && !prevCheckinNull)
+      (showFaded && z.manualCheckins[z.checkins.length - ci] && (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin) && !prevCheckinNull)
 
     // set new checkin and manual checkin
     z.checkins.splice(ci, 1, useDecayedCheckin ? decayedCheckin :
