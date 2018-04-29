@@ -455,12 +455,12 @@ class App extends Component {
     this.saveZones(zones)
   }
 
-  editNote(i, text) {
+  editNote(zi, ci, text) {
     // NOTE: do not pass z directly as the object reference will change asynchronously when state is updated
     // causing obsolete text to be saved to the server at a certain point without any discrepancies visible client-side until the note was closed and re-opened.
-    const z = this.state.zones[i]
+    const z = this.state.zones[zi]
     z.notes = z.notes || {}
-    z.notes[z.checkins.length - i - 1] = text
+    z.notes[z.checkins.length - ci - 1] = text
     this.saveZones()
   }
 
@@ -496,8 +496,8 @@ class App extends Component {
         this.state.noteEdit ? <div className='popup-container note-container'>
         <div className='popup note-popup'>
           <p className='note-label'>{this.state.noteEdit.z.label}</p>
-          <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1, 'days').format('dddd, MMMM Do')}</p>
-          <textarea className='note-text' onInput={(e) => this.editNoteThrottled(this.state.noteEdit.i, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.i - 1]}></textarea>
+          <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1, 'days').format('dddd, MMMM Do')}</p>
+          <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.zi, this.state.noteEdit.ci, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1]}></textarea>
           <a className='button note-button' onClick={this.state.noteEditReady ? () => this.setState({ noteEdit: null, noteEditReady: false }) : null}>Close</a>
         </div>
       </div> : null}
@@ -551,18 +551,18 @@ class App extends Component {
     </div>
   }
 
-  zone(z, i) {
+  zone(z, zi) {
     const contentHeight = this.state.zones.length * 50
     const marginTop = Math.max(65, (this.state.windowHeight - contentHeight)/2)
-    const top = marginTop + i*50 - this.state.scrollY
+    const top = marginTop + zi*50 - this.state.scrollY
     return <div className='zone' key={z.label}>
       <span className='left-controls' style={{ top }}>
         <span className='row-options'>
-          { i > 0
+          { zi > 0
             ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
             : <span className='box option option-row option-hidden'></span>
           }
-          { i < this.state.zones.length-1
+          { zi < this.state.zones.length-1
             ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
             : <span className='box option option-row option-hidden'></span>
           }
@@ -571,16 +571,16 @@ class App extends Component {
         <span className='box zone-label' onClick={() => this.editRow(z)}>{z.label}</span>
       </span>
       <span className='checkins'>{z.checkins
-        ? z.checkins.map((c, i) => this.checkin(c, i, z))
+        ? z.checkins.map((c, ci) => this.checkin(c, ci, z, zi))
         : null
        }</span>
     </div>
   }
 
-  checkin(c, i, z) {
-    const hasNote = z.notes && z.notes[z.checkins.length - i - 1]
+  checkin(c, ci, z, zi) {
+    const hasNote = z.notes && z.notes[z.checkins.length - ci - 1]
     return <ClickNHold
-      key={i}
+      key={ci}
       className='clicknhold'
       time={0.5}
       onStart={(e) => {
@@ -591,7 +591,7 @@ class App extends Component {
       onClickNHold={() => {
         if (!this.state.disableClick) {
           this.setState({
-            noteEdit: { z, i }
+            noteEdit: { z, zi, ci }
           })
 
           // delayed actions
@@ -614,7 +614,7 @@ class App extends Component {
         // normal click event
         // treat mouse event as duplicate and ignore if on a touchscreen
         if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
-          this.changeState(z, i)
+          this.changeState(z, ci)
         }
 
         // must be disableed to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
@@ -624,8 +624,8 @@ class App extends Component {
       }}
     ><span onTouchMove={() => this.setState({ disableClick: true })} className={'box checkin checkin' + c + (
       // today
-      ((this.state.showFadedToday && i === 0) || this.state.showCheckins) &&
-      (!z.manualCheckins || !z.manualCheckins[z.checkins.length - i]) ? ' faded' : '')}>
+      ((this.state.showFadedToday && ci === 0) || this.state.showCheckins) &&
+      (!z.manualCheckins || !z.manualCheckins[z.checkins.length - ci]) ? ' faded' : '')}>
       {hasNote ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
