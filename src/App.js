@@ -91,9 +91,8 @@ class App extends Component {
 
     // load data immediately from localStorage
     const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
-    const startZones = this.fill(JSON.parse(localGet('zones') || defaultZones), defaultStartDate)
     this.state = {
-      zones: startZones,
+      zones: JSON.parse(localGet('zones') || defaultZones),
       startDate: defaultStartDate,
       showCheckins: localGet('showCheckins') === 'true',
       showFadedToday: localGet('showFadedToday') === 'true',
@@ -104,6 +103,10 @@ class App extends Component {
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
     }
+
+    // fill in missing zones
+    // NOTE: this.fill must be called AFTER this.state is defined
+    this.state.zones = this.fill(this.state.zones, defaultStartDate)
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
