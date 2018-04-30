@@ -173,7 +173,7 @@ class App extends Component {
           if (connected) {
             const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.zones[0].checkins.length + 1
             if (missingDays > 0) {
-              this.saveZones(this.fill(this.state.zones, this.state.startDate))
+              this.sync('zones', this.fill(this.state.zones, this.state.startDate))
             }
           }
         })
@@ -205,42 +205,40 @@ class App extends Component {
           })
 
           if (value.showCheckins) {
-            this.toggleShowCheckins(value.showCheckins, true)
+            this.sync('showCheckins', value.showCheckins, true)
           }
 
           if (value.night) {
-            this.toggleNightMode(value.night, true)
+            this.sync('night', value.night, true)
           }
 
           if (value.showFadedToday) {
-            this.toggleShowFadedToday(value.showFadedToday, true)
+            this.sync('showFadedToday', value.showFadedToday, true)
           }
 
           if (value.decayDays) {
-            this.setDecayDays(value.decayDays, true)
+            this.sync('decayDays', value.decayDays, true)
           }
 
           // save start date or legacy start date
           const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
-          this.saveStartDate(startDate, true)
+          this.sync('startDate', startDate, true)
 
           // if Firebase data is newer than stored data, update localStorage
           if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.saveZones(this.fill(value.zones, startDate), true)
+            this.sync('zones', this.fill(value.zones, startDate), true)
           }
           // do nothing if Firebase data is older than stored data
         }
         // if no Firebase data, initialize with defaults
         else {
-          this.saveZones(null, true)
+          this.sync('zones', null, true)
         }
       })
     })
 
     this.toggleSettings = this.toggleSettings.bind(this)
-    this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
-    this.setDecayDays = this.setDecayDays.bind(this)
-    this.toggleNightMode = this.toggleNightMode.bind(this)
+    this.sync = this.sync.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
@@ -307,98 +305,36 @@ class App extends Component {
    * State Change
    **************************************************************/
 
+  // state only
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
   }
 
-  toggleShowFadedToday(value, localOnly) {
-    value = value || !this.state.showFadedToday
-    this.setState({ showFadedToday: value }, () => {
+  // save to state, localStorage, and Firebase
+  sync(key, value, localOnly) {
+    this.setState({ [key]: value }, () => {
 
       // update localStorage
-      localSet('showFadedToday', JSON.stringify(value))
+      localSet(key, key === 'startDate' ? value : JSON.stringify(value))
 
       // update Firebase
       if (!localOnly) {
-        this.state.userRef.update({ showFadedToday: value })
-      }
-    })
-  }
 
-  toggleShowCheckins(value, localOnly) {
-    value = value || !this.state.showCheckins
-    this.setState({ showCheckins: value }, () => {
+        // if syncing zones, update lastUpdated in localStorage
+        if (key === 'zones') {
+          localSet('lastUpdated', Date.now())
+        }
 
-      // update localStorage
-      localSet('showCheckins', JSON.stringify(value))
-
-      // update Firebase
-      if (!localOnly) {
-        this.state.userRef.update({ showCheckins: value })
-      }
-    })
-  }
-
-  toggleNightMode(value, localOnly) {
-    value = value || !this.state.night
-
-    // manually add/remove class to body since it's outside the target element of render
-    document.body.classList[value ? 'add' : 'remove']('night')
-
-    this.setState({ night: value }, () => {
-
-      // update localStorage
-      localSet('night', JSON.stringify(value))
-
-      // do not sync this settings to Firebase (per-device)
-    })
-  }
-
-  /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
-  saveStartDate(startDate, localOnly) {
-    this.setState({ startDate }, () => {
-
-      // update localStorage
-      localSet('startDate', startDate)
-
-      // update Firebase
-      if (!localOnly) {
-        this.state.userRef.update({ startDate })
-      }
-    })
-  }
-
-  setDecayDays(value, localOnly) {
-    value = value || !this.state.decayDays
-    this.setState({ decayDays: value }, () => {
-
-      // update localStorage
-      localSet('decayDays', JSON.stringify(value))
-
-      // update Firebase
-      if (!localOnly) {
-        this.state.userRef.update({ decayDays: value })
-      }
-    })
-  }
-
-  /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
-  saveZones(zones, localOnly) {
-    zones = zones || this.state.zones
-    this.setState({ zones }, () => {
-
-      // update localStorage
-      localSet('zones', JSON.stringify(zones))
-
-      if (!localOnly) {
-        localSet('lastUpdated', Date.now())
-
-        // update Firebase
-        this.state.userRef.update({
-          zones,
-          startDate: this.state.startDate,
-          lastUpdated: Date.now()
-        })
+        this.state.userRef.update(
+          // if syncing zones, set the start date and lastUpdated
+          key === 'zones' ? {
+            zones: value,
+            startDate: this.state.startDate,
+            lastUpdated: Date.now()
+          }
+          // otherwise just set the value
+          : { [key]: value }
+        )
       }
     })
   }
@@ -426,11 +362,11 @@ class App extends Component {
       promote(z.checkins[ci])))
     z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
 
-    this.saveZones()
+    this.sync('zones', this.state.zones)
   }
 
   addColumn() {
-    this.saveZones(this.getNewColumn(this.state.zones))
+    this.sync('zones', this.getNewColumn(this.state.zones))
   }
 
   addRow() {
@@ -447,7 +383,7 @@ class App extends Component {
         checkins: sampleCheckins.concat().fill(STATE_NULL)
       }
     ])
-    this.saveZones(zones)
+    this.sync('zones', zones)
   }
 
   editRow(z) {
@@ -458,7 +394,7 @@ class App extends Component {
 
     z.label = label
     z.decay = decay
-    this.saveZones()
+    this.sync('zones', this.state.zones)
   }
 
   moveRowDown(z) {
@@ -466,7 +402,7 @@ class App extends Component {
     const zi = zones.indexOf(z)
     zones.splice(zi, 1)
     zones.splice(zi+1, 0, z)
-    this.saveZones(zones)
+    this.sync('zones', zones)
   }
 
   moveRowUp(z) {
@@ -474,14 +410,14 @@ class App extends Component {
     const zi = zones.indexOf(z)
     zones.splice(zi, 1)
     zones.splice(zi-1, 0, z)
-    this.saveZones(zones)
+    this.sync('zones', zones)
   }
 
   removeRow(z) {
     if (window.confirm(`Are you sure you want to delete ${z.label}?`)) {
       const zones = this.state.zones.concat()
       zones.splice(zones.indexOf(z), 1)
-      this.saveZones(zones)
+      this.sync('zones', zones)
     }
   }
 
@@ -490,7 +426,7 @@ class App extends Component {
       z.checkins.shift()
       return z
     })
-    this.saveZones(zones)
+    this.sync('zones', zones)
   }
 
   editNote(zi, ci, text) {
@@ -499,7 +435,7 @@ class App extends Component {
     const z = this.state.zones[zi]
     z.notes = z.notes || {}
     z.notes[z.checkins.length - ci - 1] = text
-    this.saveZones()
+    this.sync('zones', this.state.zones)
   }
 
   /**************************************************************
@@ -555,16 +491,19 @@ class App extends Component {
               </span> : null}
               <span className='dim'>Version: </span>{pkg.version}<br/>
               <hr/>
-              Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
-              Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+              Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.showFadedToday)} /><br/>
+              Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.sync('showCheckins', !this.state.showCheckins)} /><br/>
               Days that decay (Mon-Sun): {[1, 2, 3, 4, 5, 6, 0].map(day =>
                 <input key={day} type='checkbox' checked={this.state.decayDays[day]} onChange={() => {
                   this.state.decayDays.splice(day, 1, !this.state.decayDays[day])
-                  return this.setDecayDays(this.state.decayDays)}
+                  return this.sync('decayDays', this.state.decayDays)}
                 }/>
               )}
               <br/>
-              Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
+              Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => {
+                document.body.classList[!this.state.night ? 'add' : 'remove']('night')
+                this.sync('night', !this.state.night, true)
+              }} /><br />
               <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
               <a className='settings-logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
             </span> : null}
