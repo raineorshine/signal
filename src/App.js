@@ -490,27 +490,28 @@ class App extends Component {
           </div>
           <div className='top-options'>
             {this.state.showSettings ? <span className='settings-content'>
-              {this.state.user ? <span>
-                <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
-                <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
-              </span> : null}
-              <span className='dim'>Version: </span>{pkg.version}<br/>
-              <hr/>
-              Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.showFadedToday)} /><br/>
-              Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.sync('showCheckins', !this.state.showCheckins)} /><br/>
-              Days that decay (Mon-Sun): {[1, 2, 3, 4, 5, 6, 0].map(day =>
+              Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
                 <input key={day} type='checkbox' checked={this.state.decayDays[day]} onChange={() => {
                   this.state.decayDays.splice(day, 1, !this.state.decayDays[day])
                   return this.sync('decayDays', this.state.decayDays)}
                 }/>
-              )}
-              <br/>
+              )}</span><br/>
+              Show today's checkins: <input type='checkbox' disabled={this.state.showCheckins} checked={this.state.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.showFadedToday)} /><br/>
+              Show all checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.sync('showCheckins', !this.state.showCheckins)} /><br/>
               Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => {
                 document.body.classList[!this.state.night ? 'add' : 'remove']('night')
                 this.sync('night', !this.state.night, true)
               }} /><br />
-              <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
-              <a className='settings-logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
+              <a className='settings-showintro text-small' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
+              <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
+              <hr/>
+              <div className='text-small'>
+              {this.state.user ? <span>
+                <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
+                <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
+              </span> : null}
+              <span className='dim'>Version: </span>{pkg.version}
+              </div>
             </span> : null}
             <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
           </div>

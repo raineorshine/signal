@@ -48,6 +48,14 @@ hr {
   color: #aaa;
 }
 
+.text-small {
+  font-size: 80%;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
 .popup-container {
   width: calc(100vw - 32px); /* -padding. Use vw units here because sometimes the width is inordinately large (e.g. 1500px and % breaks. */
   height: calc(100vh - 32px);
@@ -230,7 +238,6 @@ a.note-button {
 }
 
 .settings-content a {
-  font-size: 80%;
   margin-right: 5px;
 }
 
