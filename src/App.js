@@ -434,7 +434,12 @@ class App extends Component {
     // causing obsolete text to be saved to the server at a certain point without any discrepancies visible client-side until the note was closed and re-opened.
     const z = this.state.zones[zi]
     z.notes = z.notes || {}
-    z.notes[z.checkins.length - ci - 1] = text
+    if (text) {
+      z.notes[z.checkins.length - ci - 1] = text
+    }
+    else {
+      delete z.notes[z.checkins.length - ci - 1]
+    }
     this.sync('zones', this.state.zones)
   }
 
