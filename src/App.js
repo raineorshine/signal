@@ -19,7 +19,7 @@ const firebaseConfig = {
   messagingSenderId: "918887966885"
 }
 
-const [/*STATE_RED*/, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
+const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultZones = JSON.stringify([{
@@ -56,6 +56,10 @@ if (!localGet('showFadedToday')) {
   localSet('showFadedToday', 'true')
 }
 
+if (!localGet('decayDays')) {
+  localSet('decayDays', JSON.stringify([true, true, true, true, true, true, true]))
+}
+
 // manually add/remove class to body since it's outside the target element of render
 document.body.classList[localGet('night') === 'true' ? 'add' : 'remove']('night')
 
@@ -70,49 +74,11 @@ const demote = c => (c - 2) % 3 + 1
 // const promoteNoWrap = c => c < 1 ? c + 1 : 1
 // const demoteNoWrap = c => c > -1 ? c - 1 : -1
 
-/** Return a new checkin for a given zone with potential decay */
-const checkinWithDecay = (zone, ci=0) => {
-  if (zone.decay && zone.checkins[ci] > -1) {
-    // check if the decay rate has been met
-    // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
-    const checkinsInDecayZone = zone.checkins.slice(ci, ci + zone.decay)
-    const readyToDecay = same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
-    return readyToDecay ? demote(zone.checkins[ci]) : zone.checkins[ci]
-  }
-  else {
-    return zone.checkins[ci]
-  }
-}
-
 /** Returns true if all items in the list are the same. */
 const same = list => list.reduce((prev, next) => prev === next ? next : false) !== false
 
 /** Returns true if none of the given checkins have a manual checkin. */
 const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c, ci) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - ci + 1]))
-
-/** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
-const getNewColumn = zones => {
-  return zones.map(z => {
-    if (z.checkins) {
-      const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-        ? checkinWithDecay(z)
-        : STATE_NULL
-      z.checkins.unshift(checkin)
-    }
-    else {
-      z.checkins = [STATE_NULL]
-    }
-    return z
-  })
-}
-
-/* if missing days, fill them in */
-const fill = (zones, startDate) => {
-  const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
-  return missingDays > 0
-    ? fill(getNewColumn(zones), startDate)
-    : zones
-}
 
 /**************************************************************
  * App
@@ -125,12 +91,13 @@ class App extends Component {
 
     // load data immediately from localStorage
     const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
-    const startZones = fill(JSON.parse(localGet('zones') || defaultZones), defaultStartDate)
+    const startZones = this.fill(JSON.parse(localGet('zones') || defaultZones), defaultStartDate)
     this.state = {
       zones: startZones,
       startDate: defaultStartDate,
       showCheckins: localGet('showCheckins') === 'true',
       showFadedToday: localGet('showFadedToday') === 'true',
+      decayDays: JSON.parse(localGet('decayDays')),
       night: localGet('night') === 'true',
       scrollY: window.scrollY,
       windowHeight: window.innerHeight,
@@ -206,7 +173,7 @@ class App extends Component {
           if (connected) {
             const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.zones[0].checkins.length + 1
             if (missingDays > 0) {
-              this.saveZones(fill(this.state.zones, this.state.startDate))
+              this.saveZones(this.fill(this.state.zones, this.state.startDate))
             }
           }
         })
@@ -220,6 +187,7 @@ class App extends Component {
         localSet('zones', localGetTemp('zones'))
         localSet('showFadedToday', localGetTemp('zones'))
         localSet('showCheckins', localGetTemp('zones'))
+        localSet('decayDays', localGetTemp('decayDays'))
         localSet('night', localGetTemp('zones'))
         localSet('startDate', localGetTemp('zones'))
       }
@@ -248,13 +216,17 @@ class App extends Component {
             this.toggleShowFadedToday(value.showFadedToday, true)
           }
 
+          if (value.decayDays) {
+            this.setDecayDays(value.decayDays, true)
+          }
+
           // save start date or legacy start date
           const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
           this.saveStartDate(startDate, true)
 
           // if Firebase data is newer than stored data, update localStorage
           if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.saveZones(fill(value.zones, startDate), true)
+            this.saveZones(this.fill(value.zones, startDate), true)
           }
           // do nothing if Firebase data is older than stored data
         }
@@ -267,6 +239,7 @@ class App extends Component {
 
     this.toggleSettings = this.toggleSettings.bind(this)
     this.toggleShowCheckins = this.toggleShowCheckins.bind(this)
+    this.setDecayDays = this.setDecayDays.bind(this)
     this.toggleNightMode = this.toggleNightMode.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
@@ -276,6 +249,58 @@ class App extends Component {
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
     this.editNoteThrottled = throttle(this.editNote, 1000, { leading: false })
+  }
+
+  /**************************************************************
+   * Stateful Helpers
+   **************************************************************/
+
+  /* Gets the date of a checkin */
+  checkinDate(ci) {
+    const sampleCheckins = this.state.zones[0].checkins || []
+    return moment(this.state.startDate).add(sampleCheckins.length - ci - 1, 'days')
+  }
+
+  /** Return a new checkin for a given zone with potential decay */
+  checkinWithDecay(zone, ci=0) {
+
+    // check if the decay rate has been met
+    // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
+    const readyToDecay = () => {
+      const checkinsInDecayZone = zone.checkins.slice(ci, ci + zone.decay)
+      return same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
+    }
+
+    return zone.decay && // zone has a decay
+      this.state.decayDays[(this.checkinDate(ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
+      zone.checkins[ci] > STATE_RED && // can't decay past red
+      readyToDecay() // do last for efficiency
+      ? demote(zone.checkins[ci])
+      : zone.checkins[ci]
+  }
+
+  /** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
+  getNewColumn(zones) {
+    return zones.map(z => {
+      if (z.checkins) {
+        const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
+          ? this.checkinWithDecay(z)
+          : STATE_NULL
+        z.checkins.unshift(checkin)
+      }
+      else {
+        z.checkins = [STATE_NULL]
+      }
+      return z
+    })
+  }
+
+  /* if missing days, fill them in */
+  fill(zones, startDate) {
+    const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
+    return missingDays > 0
+      ? this.fill(this.getNewColumn(zones), startDate)
+      : zones
   }
 
   /**************************************************************
@@ -343,6 +368,20 @@ class App extends Component {
     })
   }
 
+  setDecayDays(value, localOnly) {
+    value = value || !this.state.decayDays
+    this.setState({ decayDays: value }, () => {
+
+      // update localStorage
+      localSet('decayDays', JSON.stringify(value))
+
+      // update Firebase
+      if (!localOnly) {
+        this.state.userRef.update({ decayDays: value })
+      }
+    })
+  }
+
   /** Save given zones or state zones to state, localStorage, and (optionally) Firebase. */
   saveZones(zones, localOnly) {
     zones = zones || this.state.zones
@@ -369,7 +408,7 @@ class App extends Component {
     z.manualCheckins = z.manualCheckins || {}
 
     // get conditions and values for determining a decayed checkin
-    const decayedCheckin = checkinWithDecay(z, ci+1)
+    const decayedCheckin = this.checkinWithDecay(z, ci+1)
     const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
     const showFaded = (this.state.showFadedToday && ci === 0) || this.state.showCheckins
 
@@ -391,7 +430,7 @@ class App extends Component {
   }
 
   addColumn() {
-    this.saveZones(getNewColumn(this.state.zones))
+    this.saveZones(this.getNewColumn(this.state.zones))
   }
 
   addRow() {
@@ -518,6 +557,13 @@ class App extends Component {
               <hr/>
               Fade today's habits without checkins: <input type='checkbox' checked={this.state.showFadedToday} onChange={() => this.toggleShowFadedToday()} /><br/>
               Fade all habits without checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.toggleShowCheckins()} /><br/>
+              Days that decay (Mon-Sun): {[1, 2, 3, 4, 5, 6, 0].map(day =>
+                <input key={day} type='checkbox' checked={this.state.decayDays[day]} onChange={() => {
+                  this.state.decayDays.splice(day, 1, !this.state.decayDays[day])
+                  return this.setDecayDays(this.state.decayDays)}
+                }/>
+              )}
+              <br/>
               Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => this.toggleNightMode()} /><br />
               <a className='settings-showintro' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
               <a className='settings-logout' onClick={() => firebase.auth().signOut()}>Log Out</a>
@@ -628,12 +674,10 @@ class App extends Component {
   }
 
   dates() {
-    const sampleCheckins = this.state.zones[0].checkins || []
-
     return <div className='dates'>
       <div className='box dates-mask'></div>
-      {sampleCheckins.map((checkin, ci) => {
-        const date = moment(this.state.startDate).add(sampleCheckins.length - ci - 1, 'days')
+      {(this.state.zones[0].checkins || []).map((checkin, ci) => {
+        const date = this.checkinDate(ci)
         return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
       })}
     </div>
