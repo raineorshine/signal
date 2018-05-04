@@ -286,7 +286,8 @@ a.settings-logout {
 .checkin0 { background-color: #FED666; }
 .checkin-1 { background-color: #E5737C; }
 
-.checkin.faded { opacity: 0.7; }
+.night .checkin.faded { opacity: 0.87; }
+.checkin.faded { opacity: 0.77; }
 
 
 .clear-checkin .checkin {
