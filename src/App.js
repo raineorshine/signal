@@ -365,7 +365,36 @@ class App extends Component {
       promote(z.checkins[ci])))
     z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
 
-    this.sync('zones', this.state.zones)
+    // update local immediately
+    this.sync('zones', this.state.zones, true)
+
+    // update subsequent decayed check-ins (with animation)
+    let di = ci-1 // stop any animation in progress
+    clearInterval(this.dominoInterval)
+    this.dominoInterval = setInterval(() => {
+
+      // only update decayed check-ins coming after the current item
+      if (di >= 0 && !z.manualCheckins[z.checkins.length - di]) {
+
+        // update zones
+        z.checkins.splice(di, 1, this.checkinWithDecay(z, di+1))
+
+        // advance animation
+        di--
+
+        // update local during animation
+        this.sync('zones', this.state.zones, true)
+      }
+      else {
+        // end animation
+        clearInterval(this.dominoInterval)
+
+        // update Firebase at end of animation
+        // (also applies if there were no subsequent decayed checkins)
+        this.sync('zones', this.state.zones)
+      }
+
+    }, 60)
   }
 
   addColumn() {
