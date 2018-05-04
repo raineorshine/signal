@@ -172,11 +172,11 @@ class App extends Component {
           // update offline state
           this.setState({ offline: !connected })
 
-          // when reconnecting, if there are missing days, fill them in
+          // when reconnecting, if there are missing days, fill them in, but do not update Firebase
           if (connected) {
             const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.zones[0].checkins.length + 1
             if (missingDays > 0) {
-              this.sync('zones', this.fill(this.state.zones, this.state.startDate))
+              this.sync('zones', this.fill(this.state.zones, this.state.startDate), true)
             }
           }
         })
