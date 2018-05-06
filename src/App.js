@@ -80,6 +80,42 @@ const same = list => list.reduce((prev, next) => prev === next ? next : false) !
 /** Returns true if none of the given checkins have a manual checkin. */
 const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c, ci) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - ci + 1]))
 
+const migrate1to2 = state => {
+  const sampleCheckins = state.zones[0].checkins || []
+
+  return {
+    startDate: state.startDate,
+    settings: {
+      showCheckins: state.showCheckins,
+      showFadedToday: state.showFadedToday,
+      decayDays: state.decayDays,
+      night: state.night
+    },
+    rows: state.zones.map(z => ({
+      label: z.label,
+      checkins: Object.keys(z.manualCheckins)
+        .filter(key => key > 0 && z.manualCheckins[key])
+        .map(key => {
+          // create a new 0-based, right-aligned index
+          // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
+          const i = +key - 1
+          const date = moment(state.startDate).add(i, 'days').format('YYYY-MM-DD')
+          return {
+            date,
+            state: z.checkins[sampleCheckins.length - i - 1]
+          }
+        }).reduce((prev, next, i) => {
+          // const date = moment(state.startDate).add(sampleCheckins.length - i - 1, 'days').format('YYYY-MM-DD')
+          return Object.assign({}, prev, {
+            [next.date]: next
+          })
+        }, {})
+    })),
+    scrollY: window.scrollY,
+    windowHeight: window.innerHeight
+  }
+}
+
 /**************************************************************
  * App
  **************************************************************/
@@ -91,7 +127,7 @@ class App extends Component {
 
     // load data immediately from localStorage
     const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
-    this.state = {
+    this.state = localGet('state') || migrate1to2({
       zones: JSON.parse(localGet('zones') || defaultZones),
       startDate: defaultStartDate,
       showCheckins: localGet('showCheckins') === 'true',
@@ -102,7 +138,7 @@ class App extends Component {
       windowHeight: window.innerHeight,
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
-    }
+    })
 
     // fill in missing zones
     // NOTE: this.fill must be called AFTER this.state is defined
