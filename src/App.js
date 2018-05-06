@@ -22,14 +22,14 @@ const firebaseConfig = {
 const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
-const defaultZones = JSON.stringify([{
-  checkins: [STATE_NULL],
+const defaultRows = JSON.stringify([{
+  checkins: {},
   label: '💤'
 }, {
-  checkins: [STATE_NULL],
+  checkins: {},
   label: '🥗'
 }, {
-  checkins: [STATE_NULL],
+  checkins: {},
   label: '👟'
 }])
 
@@ -49,7 +49,7 @@ if (!localStorage.latestUid) {
 }
 
 if (!localGet('zones')) {
-  localSet('zones', defaultZones)
+  localSet('zones', defaultRows)
 }
 
 if (!localGet('showFadedToday')) {
@@ -78,34 +78,92 @@ const demote = c => (c - 2) % 3 + 1
 const same = list => list.reduce((prev, next) => prev === next ? next : false) !== false
 
 /** Returns true if none of the given checkins have a manual checkin. */
-const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c, ci) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - ci + 1]))
+const noManualCheckins = (checkinsInDecayRow, row) => checkinsInDecayRow.every((c, ci) => !(row.manualCheckins && row.manualCheckins[row.checkins.length - ci + 1]))
 
-const migrate1to2 = state => {
-  const sampleCheckins = state.zones[0].checkins || []
+/* Gets the date of a checkin */
+const checkinDate = ci => {
+  return moment(this.state.startDate).add(ci, 'days')
+}
 
-  return {
-    startDate: state.startDate,
+/** Return a new checkin for a given row with potential decay */
+const checkinWithDecay = (row, ci=0, decayDays) => {
+
+  // check if the decay rate has been met
+  // e.g. a row with a decay rate of 3 will only decay after 3 days in a row without a checkin
+  const readyToDecay = () => {
+    const checkinsInDecayRow = row.checkins.slice(ci, ci + row.decay)
+    return same(checkinsInDecayRow) && noManualCheckins(checkinsInDecayRow, row)
+  }
+
+  return row.decay && // row has a decay
+    decayDays[(checkinDate(ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
+    row.checkins[ci] > STATE_RED && // can't decay past red
+    readyToDecay() // do last for efficiency
+    ? demote(row.checkins[ci])
+    : row.checkins[ci]
+}
+
+/** Get all the rows with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
+const getNewColumn= (rows, decayDays) => {
+  return rows.map(z => {
+    if (z.checkins) {
+      const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
+        ? checkinWithDecay(z, 0, decayDays)
+        : STATE_NULL
+      z.checkins.unshift(checkin)
+    }
+    else {
+      z.checkins = [STATE_NULL]
+    }
+    return z
+  })
+}
+
+/* if missing days, fill them in */
+const fill = (rows, startDate, decayDays) => {
+  const missingDays = moment().diff(startDate, 'days') - rows[0].checkins.length + 1
+  return missingDays > 0
+    ? fill(getNewColumn(rows, decayDays), startDate, decayDays)
+    : rows
+}
+
+const migrate1to2 = oldState => {
+  const sampleCheckins = oldState.zones[0].checkins || []
+
+  const newState = {
+    startDate: oldState.startDate,
     settings: {
-      showCheckins: state.showCheckins,
-      showFadedToday: state.showFadedToday,
-      decayDays: state.decayDays,
-      night: state.night
+      showCheckins: oldState.showCheckins,
+      showFadedToday: oldState.showFadedToday,
+      decayDays: oldState.decayDays,
+      night: oldState.night
     },
-    rows: state.zones.map(z => ({
+    rows: oldState.zones.map(z => ({
       label: z.label,
+      notes: Object.keys(z.notes || {})
+        .filter(days => z.notes[days])
+        .map(days => ({
+          date: moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD'),
+          note: z.notes[days]
+        }))
+        .reduce((prev, next, i) => {
+          return Object.assign({}, prev, {
+            [next.date]: next.note
+          })
+        }, {}),
       checkins: Object.keys(z.manualCheckins)
-        .filter(key => key > 0 && z.manualCheckins[key])
-        .map(key => {
+        .filter(days => days > 0 && z.manualCheckins[days])
+        .map(days => {
           // create a new 0-based, right-aligned index
           // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
-          const i = +key - 1
-          const date = moment(state.startDate).add(i, 'days').format('YYYY-MM-DD')
+          const i = +days - 1
+          const date = moment(oldState.startDate).add(i, 'days').format('YYYY-MM-DD')
           return {
             date,
             state: z.checkins[sampleCheckins.length - i - 1]
           }
-        }).reduce((prev, next, i) => {
-          // const date = moment(state.startDate).add(sampleCheckins.length - i - 1, 'days').format('YYYY-MM-DD')
+        })
+        .reduce((prev, next, i) => {
           return Object.assign({}, prev, {
             [next.date]: next
           })
@@ -114,6 +172,11 @@ const migrate1to2 = state => {
     scrollY: window.scrollY,
     windowHeight: window.innerHeight
   }
+
+  localSet('rows', JSON.stringify(newState.rows))
+  localSet('settings', JSON.stringify(newState.settings))
+
+  return newState
 }
 
 /**************************************************************
@@ -128,7 +191,7 @@ class App extends Component {
     // load data immediately from localStorage
     const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
     this.state = localGet('state') || migrate1to2({
-      zones: JSON.parse(localGet('zones') || defaultZones),
+      zones: JSON.parse(localGet('zones') || defaultRows),
       startDate: defaultStartDate,
       showCheckins: localGet('showCheckins') === 'true',
       showFadedToday: localGet('showFadedToday') === 'true',
@@ -140,9 +203,9 @@ class App extends Component {
       tutorial: !localGet('lastUpdated')
     })
 
-    // fill in missing zones
+    // fill in missing rows
     // NOTE: this.fill must be called AFTER this.state is defined
-    this.state.zones = this.fill(this.state.zones, defaultStartDate)
+    this.state.rows = fill(this.state.rows, defaultStartDate, this.state.decayDays)
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
@@ -210,9 +273,9 @@ class App extends Component {
 
           // when reconnecting, if there are missing days, fill them in, but do not update Firebase
           if (connected) {
-            const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.zones[0].checkins.length + 1
+            const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.rows[0].checkins.length + 1
             if (missingDays > 0) {
-              this.sync('zones', this.fill(this.state.zones, this.state.startDate), true)
+              this.sync('rows', fill(this.state.rows, this.state.startDate, this.state.decayDays), true)
             }
           }
         })
@@ -222,13 +285,9 @@ class App extends Component {
       // do NOT use localSet (because latestUid is not namespaced by itself)
       // if this is the first login for the user, copy over from temp
       localStorage.latestUid = user.uid
-      if (!localGet('zones')) {
-        localSet('zones', localGetTemp('zones'))
-        localSet('showFadedToday', localGetTemp('zones'))
-        localSet('showCheckins', localGetTemp('zones'))
-        localSet('decayDays', localGetTemp('decayDays'))
-        localSet('night', localGetTemp('zones'))
-        localSet('startDate', localGetTemp('zones'))
+      if (!localGet('rows')) {
+        localSet('rows', localGetTemp('rows'))
+        localSet('settings', localGetTemp('settings'))
       }
 
       // load Firebase data
@@ -265,20 +324,20 @@ class App extends Component {
 
           // if Firebase data is newer than stored data, update localStorage
           if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.sync('zones', this.fill(value.zones, startDate), true)
+            this.sync('rows', this.fill(value.rows, startDate), true)
           }
           // do nothing if Firebase data is older than stored data
         }
         // if no Firebase data, initialize with defaults
         else {
-          this.sync('zones', null, true)
+          this.sync('rows', null, true)
         }
       })
     })
 
     this.toggleSettings = this.toggleSettings.bind(this)
     this.sync = this.sync.bind(this)
-    this.zone = this.zone.bind(this)
+    this.row = this.row.bind(this)
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
@@ -286,58 +345,6 @@ class App extends Component {
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
     this.editNoteThrottled = throttle(this.editNote, 1000, { leading: false })
-  }
-
-  /**************************************************************
-   * Stateful Helpers
-   **************************************************************/
-
-  /* Gets the date of a checkin */
-  checkinDate(ci) {
-    const sampleCheckins = this.state.zones[0].checkins || []
-    return moment(this.state.startDate).add(sampleCheckins.length - ci - 1, 'days')
-  }
-
-  /** Return a new checkin for a given zone with potential decay */
-  checkinWithDecay(zone, ci=0) {
-
-    // check if the decay rate has been met
-    // e.g. a zone with a decay rate of 3 will only decay after 3 days in a row without a checkin
-    const readyToDecay = () => {
-      const checkinsInDecayZone = zone.checkins.slice(ci, ci + zone.decay)
-      return same(checkinsInDecayZone) && noManualCheckins(checkinsInDecayZone, zone)
-    }
-
-    return zone.decay && // zone has a decay
-      this.state.decayDays[(this.checkinDate(ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
-      zone.checkins[ci] > STATE_RED && // can't decay past red
-      readyToDecay() // do last for efficiency
-      ? demote(zone.checkins[ci])
-      : zone.checkins[ci]
-  }
-
-  /** Get all the zones with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
-  getNewColumn(zones) {
-    return zones.map(z => {
-      if (z.checkins) {
-        const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-          ? this.checkinWithDecay(z)
-          : STATE_NULL
-        z.checkins.unshift(checkin)
-      }
-      else {
-        z.checkins = [STATE_NULL]
-      }
-      return z
-    })
-  }
-
-  /* if missing days, fill them in */
-  fill(zones, startDate) {
-    const missingDays = moment().diff(startDate, 'days') - zones[0].checkins.length + 1
-    return missingDays > 0
-      ? this.fill(this.getNewColumn(zones), startDate)
-      : zones
   }
 
   /**************************************************************
@@ -359,15 +366,15 @@ class App extends Component {
       // update Firebase
       if (!localOnly) {
 
-        // if syncing zones, update lastUpdated in localStorage
-        if (key === 'zones') {
+        // if syncing rows, update lastUpdated in localStorage
+        if (key === 'rows') {
           localSet('lastUpdated', Date.now())
         }
 
         this.state.userRef.update(
-          // if syncing zones, set the start date and lastUpdated
-          key === 'zones' ? {
-            zones: value,
+          // if syncing rows, set the start date and lastUpdated
+          key === 'rows' ? {
+            rows: value,
             startDate: this.state.startDate,
             lastUpdated: Date.now()
           }
@@ -383,7 +390,7 @@ class App extends Component {
     z.manualCheckins = z.manualCheckins || {}
 
     // get conditions and values for determining a decayed checkin
-    const decayedCheckin = this.checkinWithDecay(z, ci+1)
+    const decayedCheckin = checkinWithDecay(z, ci+1)
     const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
     const showFaded = (this.state.showFadedToday && ci === 0) || this.state.showCheckins
 
@@ -402,7 +409,7 @@ class App extends Component {
     z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
 
     // update local immediately
-    this.sync('zones', this.state.zones, true)
+    this.sync('rows', this.state.rows, true)
 
     // update subsequent decayed check-ins (with animation)
     let di = ci-1 // stop any animation in progress
@@ -412,14 +419,14 @@ class App extends Component {
       // only update decayed check-ins coming after the current item
       if (di >= 0 && !z.manualCheckins[z.checkins.length - di]) {
 
-        // update zones
-        z.checkins.splice(di, 1, this.checkinWithDecay(z, di+1))
+        // update rows
+        z.checkins.splice(di, 1, checkinWithDecay(z, di+1))
 
         // advance animation
         di--
 
         // update local during animation
-        this.sync('zones', this.state.zones, true)
+        this.sync('rows', this.state.rows, true)
       }
       else {
         // end animation
@@ -427,14 +434,14 @@ class App extends Component {
 
         // update Firebase at end of animation
         // (also applies if there were no subsequent decayed checkins)
-        this.sync('zones', this.state.zones)
+        this.sync('rows', this.state.rows)
       }
 
     }, 60)
   }
 
   addColumn() {
-    this.sync('zones', this.getNewColumn(this.state.zones))
+    this.sync('rows', this.getNewColumn(this.state.rows))
   }
 
   addRow() {
@@ -443,15 +450,15 @@ class App extends Component {
 
     const decay = +prompt('Enter a decay rate. You may enter a value greater than 0 to have the new day\'s checkin decrease if that many days has passed without change. For example, a habit with a decay rate of 3 will automatically decrease after 3 identical checkins in a row.', 0)
 
-    const sampleCheckins = this.state.zones[0].checkins || []
-    const zones = this.state.zones.concat([
+    const sampleCheckins = this.state.rows[0].checkins || []
+    const rows = this.state.rows.concat([
       {
         label,
         decay,
         checkins: sampleCheckins.concat().fill(STATE_NULL)
       }
     ])
-    this.sync('zones', zones)
+    this.sync('rows', rows)
   }
 
   editRow(z) {
@@ -462,45 +469,45 @@ class App extends Component {
 
     z.label = label
     z.decay = decay
-    this.sync('zones', this.state.zones)
+    this.sync('rows', this.state.rows)
   }
 
   moveRowDown(z) {
-    const zones = this.state.zones.concat()
-    const zi = zones.indexOf(z)
-    zones.splice(zi, 1)
-    zones.splice(zi+1, 0, z)
-    this.sync('zones', zones)
+    const rows = this.state.rows.concat()
+    const zi = rows.indexOf(z)
+    rows.splice(zi, 1)
+    rows.splice(zi+1, 0, z)
+    this.sync('rows', rows)
   }
 
   moveRowUp(z) {
-    const zones = this.state.zones.concat()
-    const zi = zones.indexOf(z)
-    zones.splice(zi, 1)
-    zones.splice(zi-1, 0, z)
-    this.sync('zones', zones)
+    const rows = this.state.rows.concat()
+    const zi = rows.indexOf(z)
+    rows.splice(zi, 1)
+    rows.splice(zi-1, 0, z)
+    this.sync('rows', rows)
   }
 
   removeRow(z) {
     if (window.confirm(`Are you sure you want to delete ${z.label}?`)) {
-      const zones = this.state.zones.concat()
-      zones.splice(zones.indexOf(z), 1)
-      this.sync('zones', zones)
+      const rows = this.state.rows.concat()
+      rows.splice(rows.indexOf(z), 1)
+      this.sync('rows', rows)
     }
   }
 
   removeColumn() {
-    const zones = this.state.zones.map(z => {
+    const rows = this.state.rows.map(z => {
       z.checkins.shift()
       return z
     })
-    this.sync('zones', zones)
+    this.sync('rows', rows)
   }
 
   editNote(zi, ci, text) {
     // NOTE: do not pass z directly as the object reference will change asynchronously when state is updated
     // causing obsolete text to be saved to the server at a certain point without any discrepancies visible client-side until the note was closed and re-opened.
-    const z = this.state.zones[zi]
+    const z = this.state.rows[zi]
     z.notes = z.notes || {}
     if (text) {
       z.notes[z.checkins.length - ci - 1] = text
@@ -508,7 +515,7 @@ class App extends Component {
     else {
       delete z.notes[z.checkins.length - ci - 1]
     }
-    this.sync('zones', this.state.zones)
+    this.sync('rows', this.state.rows)
   }
 
   /**************************************************************
@@ -517,7 +524,7 @@ class App extends Component {
 
   render() {
     // used to vertically center the content
-    const contentHeight = this.state.zones.length * 50
+    const contentHeight = this.state.rows.length * 50
     const marginTop = Math.max(0, (window.innerHeight - contentHeight)/2 - 65)
 
     return <div
@@ -587,12 +594,12 @@ class App extends Component {
           <div className='gradient'></div>
           <div className='desktop-mask'></div>
           <div className='content' style={{ marginTop }}>
-            {this.state.zones ? <div>
+            {this.state.rows ? <div>
                 {this.dates()}
-                <div className='zones'>
-                  {this.state.zones.map(this.zone)}
+                <div className='rows'>
+                  {this.state.rows.map(this.row)}
                   { // move col-options to settlings if enough habits and two weeks of checkins
-                    this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + this.state.zones.length * 50 - this.state.scrollY }}>
+                    this.state.showSettings || this.state.rows.length < 5 || this.state.rows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + this.state.rows.length * 50 - this.state.scrollY }}>
                     <span className='box'>
                       <span className='box option col-option' onClick={this.addRow}>+</span>
                     </span>
@@ -607,33 +614,33 @@ class App extends Component {
     </div>
   }
 
-  zone(z, zi) {
-    const contentHeight = this.state.zones.length * 50
+  row(z, zi) {
+    const contentHeight = this.state.rows.length * 50
     const marginTop = Math.max(65, (this.state.windowHeight - contentHeight)/2)
     const top = marginTop + zi*50 - this.state.scrollY
-    return <div className='zone' key={z.label}>
+    return <div className='row' key={z.label}>
       <span className='left-controls' style={{ top }}>
         <span className='row-options'>
           { zi > 0
             ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
             : <span className='box option option-row option-hidden'></span>
           }
-          { zi < this.state.zones.length-1
+          { zi < this.state.rows.length-1
             ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
             : <span className='box option option-row option-hidden'></span>
           }
           <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
         </span>
-        <span className='box zone-label' onClick={() => this.editRow(z)}>{z.label}</span>
+        <span className='box row-label' onClick={() => this.editRow(z)}>{z.label}</span>
       </span>
       <span className='checkins'>{z.checkins
-        ? z.checkins.map((c, ci) => this.checkin(c, ci, z, zi))
+        ? Object.keys(z.checkins).map(date => this.checkin(z, zi, date))
         : null
        }</span>
     </div>
   }
 
-  checkin(c, ci, z, zi) {
+  checkin(date, z, zi, c, ci) {
     const hasNote = z.notes && z.notes[z.checkins.length - ci - 1]
     return <ClickNHold
       key={ci}
@@ -689,9 +696,8 @@ class App extends Component {
   dates() {
     return <div className='dates'>
       <div className='box dates-mask'></div>
-      {(this.state.zones[0].checkins || []).map((checkin, ci) => {
-        const date = this.checkinDate(ci)
-        return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
+      {Object.keys(this.state.rows[0].checkins || {}).map(date => {
+        return <span key={date} className='box date' title={moment(date).format('dddd, M/D')}>{moment(date).format('D')}</span>
       })}
     </div>
   }
