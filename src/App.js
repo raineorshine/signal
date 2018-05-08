@@ -140,38 +140,33 @@ const migrate1to2 = oldState => {
     },
     rows: oldState.zones.map(z => ({
       label: z.label,
-      notes: Object.keys(z.notes || {})
-        .filter(days => z.notes[days])
-        .map(days => ({
-          date: moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD'),
-          note: z.notes[days]
-        }))
-        .reduce((prev, next, i) => {
-          return Object.assign({}, prev, {
-            [next.date]: next.note
-          })
-        }, {}),
-      checkins: Object.keys(z.manualCheckins)
-        .filter(days => days > 0 && z.manualCheckins[days])
-        .map(days => {
+      checkins: Object.keys(z.checkins)
+        .map((value, i) => {
           // create a new 0-based, right-aligned index
           // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
-          const i = +days - 1
-          const date = moment(oldState.startDate).add(i, 'days').format('YYYY-MM-DD')
-          return {
+          const days = z.checkins.length - i - 1
+          const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
+          return Object.assign({}, z.manualCheckins[days] ? {
             date,
-            state: z.checkins[sampleCheckins.length - i - 1]
-          }
+            state: z.checkins[i]
+          } : {}, z.notes && z.notes[days] ? {
+            date,
+            note: z.notes[days]
+          } : {})
         })
+        // convert back to object
+        // filter out empty checkins
         .reduce((prev, next, i) => {
-          return Object.assign({}, prev, {
+          return Object.keys(next).length ? Object.assign({}, prev, {
             [next.date]: next
-          })
+          }) : prev
         }, {})
     })),
     scrollY: window.scrollY,
     windowHeight: window.innerHeight
   }
+
+  console.log(newState)
 
   localSet('rows', JSON.stringify(newState.rows))
   localSet('settings', JSON.stringify(newState.settings))
