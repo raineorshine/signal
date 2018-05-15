@@ -39,8 +39,14 @@ firebase.initializeApp(firebaseConfig)
 window.__DEBUG = {}
 window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
-const localGet = key => localStorage[localStorage.latestUid + '.' + key]
-const localGetTemp = key => localStorage['temp.' + key]
+const localGet = key => {
+  const value = localStorage[localStorage.latestUid + '.' + key]
+  return value === undefined || key === 'startDate' ? value : JSON.parse(value)
+}
+const localGetTemp = key => {
+  const value = localStorage['temp.' + key]
+  return value === undefined || key === 'startDate' ? value : JSON.parse(value)
+}
 const localSet = (key, value) => localStorage[localStorage.latestUid + '.' + key] = value
 
 // init localStorage
@@ -61,7 +67,7 @@ if (!localGet('decayDays')) {
 }
 
 // manually add/remove class to body since it's outside the target element of render
-document.body.classList[localGet('night') === 'true' ? 'add' : 'remove']('night')
+document.body.classList[localGet('night') ? 'add' : 'remove']('night')
 
 /**************************************************************
  * Helper functions
@@ -104,6 +110,9 @@ const checkinWithDecay = (row, ci=0, decayDays) => {
 }
 
 const migrate1to2 = oldState => {
+
+  console.log('Migrating schema v1 to v2')
+
   const newState = {
     startDate: oldState.startDate,
     settings: {
@@ -144,6 +153,7 @@ const migrate1to2 = oldState => {
 
   localSet('rows', JSON.stringify(newState.rows))
   localSet('settings', JSON.stringify(newState.settings))
+  localSet('schemaVersion', 2)
 
   return newState
 }
@@ -159,18 +169,24 @@ class App extends Component {
 
     // load data immediately from localStorage
     const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
-    this.state = localGet('state') || migrate1to2({
-      zones: JSON.parse(localGet('zones') || defaultRows),
+    this.state = localGet('schemaVersion') === 2 ? {
+      rows: localGet('rows'),
+      settings: localGet('settings'),
+      schemaVersion: localGet('schemasVersion')
+    } : migrate1to2({
+      zones: localGet('zones') || defaultRows,
       startDate: defaultStartDate,
-      showCheckins: localGet('showCheckins') === 'true',
-      showFadedToday: localGet('showFadedToday') === 'true',
-      decayDays: JSON.parse(localGet('decayDays')),
-      night: localGet('night') === 'true',
+      showCheckins: localGet('showCheckins'),
+      showFadedToday: localGet('showFadedToday'),
+      decayDays: localGet('decayDays'),
+      night: localGet('night'),
       scrollY: window.scrollY,
       windowHeight: window.innerHeight,
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
     })
+
+    console.log('state', this.state)
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
