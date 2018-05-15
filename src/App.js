@@ -48,8 +48,8 @@ if (!localStorage.latestUid) {
   localStorage.latestUid = 'temp'
 }
 
-if (!localGet('zones')) {
-  localSet('zones', defaultRows)
+if (!localGet('rows')) {
+  localSet('rows', defaultRows)
 }
 
 if (!localGet('showFadedToday')) {
@@ -103,33 +103,7 @@ const checkinWithDecay = (row, ci=0, decayDays) => {
     : row.checkins[ci]
 }
 
-/** Get all the rows with a new column at the beginning. Needed to be separated from setState so it can be used in the constructor. */
-const getNewColumn= (rows, decayDays) => {
-  return rows.map(z => {
-    if (z.checkins) {
-      const checkin = z.checkins[0] !== undefined && z.checkins[0] !== STATE_NULL
-        ? checkinWithDecay(z, 0, decayDays)
-        : STATE_NULL
-      z.checkins.unshift(checkin)
-    }
-    else {
-      z.checkins = [STATE_NULL]
-    }
-    return z
-  })
-}
-
-/* if missing days, fill them in */
-const fill = (rows, startDate, decayDays) => {
-  const missingDays = moment().diff(startDate, 'days') - rows[0].checkins.length + 1
-  return missingDays > 0
-    ? fill(getNewColumn(rows, decayDays), startDate, decayDays)
-    : rows
-}
-
 const migrate1to2 = oldState => {
-  const sampleCheckins = oldState.zones[0].checkins || []
-
   const newState = {
     startDate: oldState.startDate,
     settings: {
@@ -166,7 +140,7 @@ const migrate1to2 = oldState => {
     windowHeight: window.innerHeight
   }
 
-  console.log(newState)
+  console.log('newState', newState)
 
   localSet('rows', JSON.stringify(newState.rows))
   localSet('settings', JSON.stringify(newState.settings))
@@ -197,10 +171,6 @@ class App extends Component {
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
     })
-
-    // fill in missing rows
-    // NOTE: this.fill must be called AFTER this.state is defined
-    this.state.rows = fill(this.state.rows, defaultStartDate, this.state.decayDays)
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
@@ -270,7 +240,7 @@ class App extends Component {
           if (connected) {
             const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.rows[0].checkins.length + 1
             if (missingDays > 0) {
-              this.sync('rows', fill(this.state.rows, this.state.startDate, this.state.decayDays), true)
+              this.sync('rows', this.state.rows, true)
             }
           }
         })
@@ -318,8 +288,13 @@ class App extends Component {
           this.sync('startDate', startDate, true)
 
           // if Firebase data is newer than stored data, update localStorage
-          if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.sync('rows', this.fill(value.rows, startDate), true)
+          if (value.rows && value.lastUpdated > (localGet('lastUpdated') || 0)) {
+            this.sync('rows', value.rows, true)
+          }
+
+          // tempoarary during transition from schema v1 to v2
+          if (value.zones && value.lastUpdated > (localGet('lastUpdated') || 0)) {
+            this.sync('zones', value.zones, true)
           }
           // do nothing if Firebase data is older than stored data
         }
@@ -336,7 +311,6 @@ class App extends Component {
     this.checkin = this.checkin.bind(this)
     this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
-    this.addColumn = this.addColumn.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
     this.editNoteThrottled = throttle(this.editNote, 1000, { leading: false })
@@ -353,6 +327,10 @@ class App extends Component {
 
   // save to state, localStorage, and Firebase
   sync(key, value, localOnly) {
+    if (key === 'rows' && !value) {
+      throw new Error('Attempt to delete rows')
+    }
+
     this.setState({ [key]: value }, () => {
 
       // update localStorage
@@ -433,10 +411,6 @@ class App extends Component {
       }
 
     }, 60)
-  }
-
-  addColumn() {
-    this.sync('rows', this.getNewColumn(this.state.rows))
   }
 
   addRow() {
