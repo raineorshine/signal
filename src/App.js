@@ -112,9 +112,9 @@ const checkinWithDecay = (row, ci=0, decayDays) => {
 const migrate1to2 = oldState => {
 
   console.log('Migrating schema v1 to v2')
+  console.log('oldState', oldState)
 
   const newState = {
-    startDate: oldState.startDate,
     settings: {
       showCheckins: oldState.showCheckins,
       showFadedToday: oldState.showFadedToday,
@@ -129,7 +129,7 @@ const migrate1to2 = oldState => {
           // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
           const days = z.checkins.length - i - 1
           const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
-          return Object.assign({}, z.manualCheckins[days] ? {
+          return Object.assign({}, z.manualCheckins[days + 1] ? {
             date,
             state: z.checkins[i]
           } : {}, z.notes && z.notes[days] ? {
@@ -144,9 +144,7 @@ const migrate1to2 = oldState => {
             [next.date]: next
           }) : prev
         }, {})
-    })),
-    scrollY: window.scrollY,
-    windowHeight: window.innerHeight
+    }))
   }
 
   console.log('newState', newState)
@@ -168,23 +166,25 @@ class App extends Component {
     super()
 
     // load data immediately from localStorage
-    const defaultStartDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
-    this.state = localGet('schemaVersion') === 2 ? {
+    const startDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
+    this.state = Object.assign({
+      startDate,
+      scrollY: window.scrollY,
+      windowHeight: window.innerHeight,
+    }, localGet('schemaVersion') === 2 ? {
       rows: localGet('rows'),
       settings: localGet('settings'),
       schemaVersion: localGet('schemasVersion')
     } : migrate1to2({
       zones: localGet('zones') || defaultRows,
-      startDate: defaultStartDate,
+      startDate: startDate,
       showCheckins: localGet('showCheckins'),
       showFadedToday: localGet('showFadedToday'),
       decayDays: localGet('decayDays'),
       night: localGet('night'),
-      scrollY: window.scrollY,
-      windowHeight: window.innerHeight,
       // start the tutorial if the user has not checked in yet
       tutorial: !localGet('lastUpdated')
-    })
+    }))
 
     console.log('state', this.state)
 
@@ -511,6 +511,22 @@ class App extends Component {
     // used to vertically center the content
     const contentHeight = this.state.rows.length * 50
     const marginTop = Math.max(0, (window.innerHeight - contentHeight)/2 - 65)
+
+    // expand rows
+
+    // console.log('startDate', this.state.startDate)
+    const totalDays = moment().diff(this.state.startDate, 'days') + 1
+    // console.log('totalDays', totalDays)
+
+    const expandedRows = this.state.rows ? this.state.rows.map(row => ({
+      label: row.label,
+      checkins: [...Array(totalDays).keys()].map(day => {
+        const date = moment(this.state.startDate).add(day, 'days').format('YYYY-MM-DD')
+        // console.log('date', day, date)
+        return row.checkins[date] || 'DECAY'
+      })
+    })) : []
+    console.log('expandedRows', expandedRows)
 
     return <div
       className={'app' +
