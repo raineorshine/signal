@@ -87,26 +87,32 @@ const same = list => list.reduce((prev, next) => prev === next ? next : false) !
 const noManualCheckins = (checkinsInDecayRow, row) => checkinsInDecayRow.every((c, ci) => !(row.manualCheckins && row.manualCheckins[row.checkins.length - ci + 1]))
 
 /* Gets the date of a checkin */
-const checkinDate = ci => {
-  return moment(this.state.startDate).add(ci, 'days')
+const checkinDate = days => {
+  return moment(this.state.startDate).add(days, 'days')
 }
 
+let a = 0
 /** Return a new checkin for a given row with potential decay */
-const checkinWithDecay = (row, ci=0, decayDays) => {
+const checkinWithDecay = (prevCheckins, days=0, decay, decayDays) => {
+
+  if (++a < 5) {
+    console.log(prevCheckins, days, decay, decayDays)
+  }
 
   // check if the decay rate has been met
   // e.g. a row with a decay rate of 3 will only decay after 3 days in a row without a checkin
   const readyToDecay = () => {
-    const checkinsInDecayRow = row.checkins.slice(ci, ci + row.decay)
-    return same(checkinsInDecayRow) && noManualCheckins(checkinsInDecayRow, row)
+    const checkinsInDecayRow = prevCheckins.slice(0, decay) // TODO
+    return same(checkinsInDecayRow) && noManualCheckins(checkinsInDecayRow, /*row*/null)
   }
 
-  return row.decay && // row has a decay
-    decayDays[(checkinDate(ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
-    row.checkins[ci] > STATE_RED && // can't decay past red
+  return prevCheckins[0].state !== STATE_NULL &&
+    decay && // row has a decay
+    decayDays[(checkinDate(days).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
+    prevCheckins[0].state > STATE_RED && // can't decay past red
     readyToDecay() // do last for efficiency
-    ? demote(row.checkins[ci])
-    : row.checkins[ci]
+      ? demote(prevCheckins[0].state)
+      : prevCheckins[0].state
 }
 
 const migrate1to2 = oldState => {
@@ -122,6 +128,7 @@ const migrate1to2 = oldState => {
       night: oldState.night
     },
     rows: oldState.zones.map(z => ({
+      decay: z.decay || 0,
       label: z.label,
       checkins: Object.keys(z.checkins)
         .map((value, i) => {
@@ -129,11 +136,11 @@ const migrate1to2 = oldState => {
           // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
           const days = z.checkins.length - i - 1
           const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
-          return Object.assign({}, z.manualCheckins[days + 1] ? {
-            date,
+          return Object.assign({
+            date
+          }, z.manualCheckins[days + 1] ? {
             state: z.checkins[i]
           } : {}, z.notes && z.notes[days] ? {
-            date,
             note: z.notes[days]
           } : {})
         })
@@ -518,13 +525,22 @@ class App extends Component {
     const totalDays = moment().diff(this.state.startDate, 'days') + 1
     // console.log('totalDays', totalDays)
 
+    // expand checkins from right to left
     const expandedRows = this.state.rows ? this.state.rows.map(row => ({
       label: row.label,
-      checkins: [...Array(totalDays).keys()].map(day => {
-        const date = moment(this.state.startDate).add(day, 'days').format('YYYY-MM-DD')
-        // console.log('date', day, date)
-        return row.checkins[date] || 'DECAY'
-      })
+      checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
+        const date = moment(this.state.startDate).add(days, 'days').format('YYYY-MM-DD')
+        const prevCheckin = prevCheckins[0]
+        if (days < 10 && row.label === "💤") {
+          console.log('days|date|prev', days, date, prevCheckins)
+        }
+        return [{
+          state: row.checkins[date] ? row.checkins[date].state
+            : days === 0 ? STATE_NULL
+            : checkinWithDecay(prevCheckins, days, row.decay, this.state.decayDays),
+          date
+        }].concat(prevCheckins)
+      }, [])
     })) : []
     console.log('expandedRows', expandedRows)
 
