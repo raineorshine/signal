@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { App, checkinWithDecay, readyToDecay, STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL } from './App'
+import { App, checkinWithDecay, readyToDecay, expandRows, STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL } from './App'
 
 const allDaysOfWeek = [true, true, true, true, true, true, true]
 
@@ -113,6 +113,34 @@ describe('checkinWithDecay', () => {
     // no decay on Sun
     expect(checkinWithDecay([{ date: '2018-07-22'/*Sunday*/, state: STATE_GREEN }], 1, [false, true, true, true, true, true, true]))
       .toEqual(STATE_GREEN)
+  })
+
+})
+
+describe('expandRows', () => {
+
+  it('expands rows right-to-left from startDate filling in gaps', () => {
+    expect(expandRows([
+      {
+        checkins: {
+          '2018-07-23': {
+            date: '2018-07-23',
+            state: STATE_GREEN,
+            note: 'NOTE'
+          }
+        },
+        decay: 1,
+        label: 'LABEL'
+      }
+    ], '2018-07-22', allDaysOfWeek, '2018-07-25')).toEqual([{
+      label: 'LABEL',
+      checkins: [
+        { date: '2018-07-25', state: STATE_RED },
+        { date: '2018-07-24', state: STATE_YELLOW },
+        { date: '2018-07-23', checkin: true, state: STATE_GREEN, note: 'NOTE' },
+        { date: '2018-07-22', state: STATE_NULL }
+      ]
+    }])
   })
 
 })

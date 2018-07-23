@@ -116,6 +116,34 @@ export const checkinWithDecay = (prevCheckins, decay, decayDaysOfWeek) => {
       : prevCheckins[0].state
 }
 
+// endDate defaults to now
+export const expandRows = (rows, startDate, decayDays, endDate) => {
+  const totalDays = moment(endDate).diff(startDate, 'days') + 1
+  return rows ? rows.map(row => ({
+    label: row.label,
+    checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
+      const date = moment(startDate).add(days, 'days').format('YYYY-MM-DD')
+      if (days < 10 && row.label === "💤") {
+        console.log('days|date|prev', days, date, prevCheckins)
+      }
+      return [
+        Object.assign(
+          // date, state
+          {
+            date,
+            state: row.checkins[date] ? row.checkins[date].state
+              : days === 0 ? STATE_NULL
+              : checkinWithDecay(prevCheckins, row.decay, decayDays)
+          },
+          // note
+          row.checkins[date] ? { note: row.checkins[date].note } : {},
+          // checkin
+          row.checkins[date] && ('state' in row.checkins[date]) && row.checkins[date].state !== STATE_NULL || false ? { checkin: true } : {},
+        )].concat(prevCheckins)
+    }, [])
+  })) : []
+}
+
 const migrate1to2 = oldState => {
 
   console.log('Migrating schema v1 to v2')
@@ -524,27 +552,8 @@ class App extends Component {
 
     // expand rows
 
-    // console.log('startDate', this.state.startDate)
-    const totalDays = moment().diff(this.state.startDate, 'days') + 1
-    // console.log('totalDays', totalDays)
-
     // expand checkins from right to left
-    const expandedRows = this.state.rows ? this.state.rows.map(row => ({
-      label: row.label,
-      checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
-        const date = moment(this.state.startDate).add(days, 'days').format('YYYY-MM-DD')
-        if (days < 10 && row.label === "💤") {
-          console.log('days|date|prev', days, date, prevCheckins)
-        }
-        return [{
-          checkin: row.checkins[date] && 'state' in row.checkins[date] && row.checkins[date].state !== STATE_NULL,
-          state: row.checkins[date] ? row.checkins[date].state
-            : days === 0 ? STATE_NULL
-            : checkinWithDecay(prevCheckins, row.decay, this.state.settings.decayDays),
-          date
-        }].concat(prevCheckins)
-      }, [])
-    })) : []
+    const expandedRows = expandRows(this.state.rows, this.state.startDate, this.state.settings.decayDays)
     console.log('expandedRows', expandedRows)
 
     return <div
