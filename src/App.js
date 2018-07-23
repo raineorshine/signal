@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import './App.css'
-import * as moment from 'moment'
+import moment from 'moment'
 import * as throttle from 'lodash.throttle'
 import ClickNHold from 'react-click-n-hold'
 import * as pkg from '../package.json'
@@ -19,7 +19,7 @@ const firebaseConfig = {
   messagingSenderId: "918887966885"
 }
 
-const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
+export const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
 // raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultRows = JSON.stringify([{
@@ -82,37 +82,36 @@ const demote = c => (c - 2) % 3 + 1
 // const promoteNoWrap = c => c < 1 ? c + 1 : 1
 // const demoteNoWrap = c => c > -1 ? c - 1 : -1
 
-/** Returns true if all items in the list are the same. */
-const same = list => list.reduce((prev, next) => prev === next ? next : false) !== false
+/** Returns true if all checkins in the list are the same. */
+const same = list => {
+  if (list.length <= 1) return true;
 
-/** Returns true if none of the given checkins have a manual checkin. */
-const noManualCheckins = (checkinsInDecayRow, row) => checkinsInDecayRow.every((c, ci) => !(row.manualCheckins && row.manualCheckins[row.checkins.length - ci + 1]))
+  const start = list[0]
+  for(let i=1; i<list.length; i++) {
+    if (list[i].state !== start.state) return false
+  }
 
-/* Gets the date of a checkin */
-const checkinDate = days => {
-  return moment(this.state.startDate).add(days, 'days')
+  return true
 }
 
-let a = 0
+// check if the decay rate has been met
+// e.g. a row with a decay rate of 3 will only decay after 3 days in a row without a checkin
+export const readyToDecay = (prevCheckins, decay) => {
+
+  // cannot decay past red
+  if (prevCheckins[0].state === STATE_RED || prevCheckins[0].state === STATE_NULL) return false
+
+  const checkinsInDecayRange = prevCheckins.slice(0, decay - 1)
+  return checkinsInDecayRange.every(c => !c.checkin) &&
+    same(checkinsInDecayRange)
+}
+
 /** Return a new checkin for a given row with potential decay */
-const checkinWithDecay = (prevCheckins, days=0, decay, decayDays) => {
+export const checkinWithDecay = (prevCheckins, decay, decayDaysOfWeek) => {
 
-  if (++a < 5) {
-    console.log(prevCheckins, days, decay, decayDays)
-  }
-
-  // check if the decay rate has been met
-  // e.g. a row with a decay rate of 3 will only decay after 3 days in a row without a checkin
-  const readyToDecay = () => {
-    const checkinsInDecayRow = prevCheckins.slice(0, decay) // TODO
-    return same(checkinsInDecayRow) && noManualCheckins(checkinsInDecayRow, /*row*/null)
-  }
-
-  return prevCheckins[0].state !== STATE_NULL &&
-    decay && // row has a decay
-    decayDays[(checkinDate(days).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
-    prevCheckins[0].state > STATE_RED && // can't decay past red
-    readyToDecay() // do last for efficiency
+  return decay && // row has a decay
+    decayDaysOfWeek[moment(prevCheckins[0].date).day()] && // can decay on this day of the week
+    readyToDecay(prevCheckins) // do last for efficiency
       ? demote(prevCheckins[0].state)
       : prevCheckins[0].state
 }
@@ -534,14 +533,14 @@ class App extends Component {
       label: row.label,
       checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
         const date = moment(this.state.startDate).add(days, 'days').format('YYYY-MM-DD')
-        const prevCheckin = prevCheckins[0]
         if (days < 10 && row.label === "💤") {
           console.log('days|date|prev', days, date, prevCheckins)
         }
         return [{
+          checkin: row.checkins[date] && 'state' in row.checkins[date] && row.checkins[date].state !== STATE_NULL,
           state: row.checkins[date] ? row.checkins[date].state
             : days === 0 ? STATE_NULL
-            : checkinWithDecay(prevCheckins, days, row.decay, this.state.decayDays),
+            : checkinWithDecay(prevCheckins, row.decay, this.state.settings.decayDays),
           date
         }].concat(prevCheckins)
       }, [])
