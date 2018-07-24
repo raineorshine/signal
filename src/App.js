@@ -123,21 +123,21 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
     label: row.label,
     checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
       const date = moment(startDate).add(days, 'days').format('YYYY-MM-DD')
-      return [
-        Object.assign(
-          // date, state
-          {
-            date,
-            state: row.checkins[date] ? row.checkins[date].state
-              : days === 0 ? STATE_NULL
-              : checkinWithDecay(prevCheckins, row.decay, decayDays)
-          },
-          // note
-          row.checkins[date] && row.checkins[date].note ? { note: row.checkins[date].note } : {},
-          // checkin
-          (row.checkins[date] && ('state' in row.checkins[date]) && row.checkins[date].state !== STATE_NULL) || false ? { checkin: true } : {},
-        )].concat(prevCheckins)
-    }, [])
+
+      // ignore dates before the first checkin
+      return prevCheckins.length === 0 && !row.checkins[date] ? prevCheckins : [
+          Object.assign(
+            // date, state
+            {
+              date,
+              state: row.checkins[date] ? row.checkins[date].state : checkinWithDecay(prevCheckins, row.decay, decayDays)
+            },
+            // note
+            row.checkins[date] && row.checkins[date].note ? { note: row.checkins[date].note } : {},
+            // checkin
+            row.checkins[date] && ('state' in row.checkins[date]) ? { checkin: true } : {},
+          )].concat(prevCheckins)
+      }, [])
   })) : []
 }
 

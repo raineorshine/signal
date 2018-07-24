@@ -137,8 +137,7 @@ describe('expandRows', () => {
       checkins: [
         { date: '2018-07-25', state: STATE_RED },
         { date: '2018-07-24', state: STATE_YELLOW },
-        { date: '2018-07-23', checkin: true, state: STATE_GREEN, note: 'NOTE' },
-        { date: '2018-07-22', state: STATE_NULL }
+        { date: '2018-07-23', checkin: true, state: STATE_GREEN, note: 'NOTE' }
       ]
     }])
   })
