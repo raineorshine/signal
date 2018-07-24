@@ -133,7 +133,7 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
               : checkinWithDecay(prevCheckins, row.decay, decayDays)
           },
           // note
-          row.checkins[date] ? { note: row.checkins[date].note } : {},
+          row.checkins[date] && row.checkins[date].note ? { note: row.checkins[date].note } : {},
           // checkin
           (row.checkins[date] && ('state' in row.checkins[date]) && row.checkins[date].state !== STATE_NULL) || false ? { checkin: true } : {},
         )].concat(prevCheckins)
