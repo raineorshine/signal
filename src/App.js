@@ -415,7 +415,7 @@ class App extends Component {
     // get conditions and values for determining a decayed checkin
     const decayedCheckin = checkinWithDecay(z, ci+1)
     const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
-    const showFaded = (this.state.showFadedToday && ci === 0) || this.state.showCheckins
+    const showFaded = (this.state.settings.showFadedToday && ci === 0) || this.state.settings.showCheckins
 
     // rotate through decayed checkin
     // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
@@ -550,7 +550,6 @@ class App extends Component {
 
     // expand checkins from right to left
     const expandedRows = expandRows(this.state.rows, this.state.startDate, this.state.settings.decayDays)
-    console.log('expandedRows', expandedRows)
 
     return <div
       className={'app' +
@@ -591,16 +590,16 @@ class App extends Component {
           <div className='top-options'>
             {this.state.showSettings ? <span className='settings-content'>
               Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
-                <input key={day} type='checkbox' checked={this.state.decayDays[day]} onChange={() => {
-                  this.state.decayDays.splice(day, 1, !this.state.decayDays[day])
-                  return this.sync('decayDays', this.state.decayDays)}
+                <input key={day} type='checkbox' checked={this.state.settings.decayDays[day]} onChange={() => {
+                  this.state.settings.decayDays.splice(day, 1, !this.state.settings.decayDays[day])
+                  return this.sync('decayDays', this.state.settings.decayDays)}
                 }/>
               )}</span><br/>
-              Show today's checkins: <input type='checkbox' disabled={this.state.showCheckins} checked={this.state.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.showFadedToday)} /><br/>
-              Show all checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.sync('showCheckins', !this.state.showCheckins)} /><br/>
-              Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => {
-                document.body.classList[!this.state.night ? 'add' : 'remove']('night')
-                this.sync('night', !this.state.night, true)
+              Show today's checkins: <input type='checkbox' disabled={this.state.settings.showCheckins} checked={this.state.settings.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.settings.showFadedToday)} /><br/>
+              Show all checkins: <input type='checkbox' checked={this.state.settings.showCheckins} onChange={() => this.sync('showCheckins', !this.state.settings.showCheckins)} /><br/>
+              Night Mode 🌙: <input type='checkbox' checked={this.state.settings.night} onChange={() => {
+                document.body.classList[!this.state.settings.night ? 'add' : 'remove']('night')
+                this.sync('night', !this.state.settings.night, true)
               }} /><br />
               <a className='settings-showintro text-small' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
               <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
@@ -619,12 +618,12 @@ class App extends Component {
           <div className='gradient'></div>
           <div className='desktop-mask'></div>
           <div className='content' style={{ marginTop }}>
-            {this.state.rows ? <div>
+            {expandedRows ? <div>
                 {this.dates()}
                 <div className='rows'>
-                  {this.state.rows.map(this.row)}
-                  { // move col-options to settlings if enough habits and two weeks of checkins
-                    this.state.showSettings || this.state.rows.length < 5 || this.state.rows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + this.state.rows.length * 50 - this.state.scrollY }}>
+                  {expandedRows.map(this.row)}
+                  { // move col-options to settings if enough habits and two weeks of checkins
+                    this.state.showSettings || expandedRows.length < 5 || expandedRows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + expandedRows.length * 50 - this.state.scrollY }}>
                     <span className='box'>
                       <span className='box option col-option' onClick={this.addRow}>+</span>
                     </span>
@@ -639,36 +638,32 @@ class App extends Component {
     </div>
   }
 
-  row(z, zi) {
+  row(row, i) {
     const contentHeight = this.state.rows.length * 50
     const marginTop = Math.max(65, (this.state.windowHeight - contentHeight)/2)
-    const top = marginTop + zi*50 - this.state.scrollY
-    return <div className='row' key={z.label}>
+    const top = marginTop + i*50 - this.state.scrollY
+    return <div className='row' key={row.label}>
       <span className='left-controls' style={{ top }}>
         <span className='row-options'>
-          { zi > 0
-            ? <span className='box option option-row' onClick={() => this.moveRowUp(z)}>↑</span>
+          { i > 0
+            ? <span className='box option option-row' onClick={() => this.moveRowUp(row)}>↑</span>
             : <span className='box option option-row option-hidden'></span>
           }
-          { zi < this.state.rows.length-1
-            ? <span className='box option option-row' onClick={() => this.moveRowDown(z)}>↓</span>
+          { i < this.state.rows.length-1
+            ? <span className='box option option-row' onClick={() => this.moveRowDown(row)}>↓</span>
             : <span className='box option option-row option-hidden'></span>
           }
-          <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
+          <span className='box option option-row' onClick={() => this.removeRow(row)}>-</span>
         </span>
-        <span className='box row-label' onClick={() => this.editRow(z)}>{z.label}</span>
+        <span className='box row-label' onClick={() => this.editRow(row)}>{row.label}</span>
       </span>
-      <span className='checkins'>{z.checkins
-        ? Object.keys(z.checkins).map(date => this.checkin(z, zi, date))
-        : null
-       }</span>
+      <span className='checkins'>{row.checkins ? row.checkins.map(this.checkin) : null}</span>
     </div>
   }
 
-  checkin(date, z, zi, c, ci) {
-    const hasNote = z.notes && z.notes[z.checkins.length - ci - 1]
+  checkin(c, i) {
     return <ClickNHold
-      key={ci}
+      key={i}
       className='clicknhold'
       time={0.5}
       onStart={(e) => {
@@ -678,9 +673,10 @@ class App extends Component {
       }}
       onClickNHold={() => {
         if (!this.state.disableClick) {
-          this.setState({
-            noteEdit: { z, zi, ci }
-          })
+          // TODO
+          // this.setState({
+          //   noteEdit: { z, zi, ci }
+          // })
 
           // delayed actions
           window.setTimeout(() => {
@@ -702,19 +698,19 @@ class App extends Component {
         // normal click event
         // treat mouse event as duplicate and ignore if on a touchscreen
         if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
-          this.changeState(z, ci)
+          // TODO
+          // this.changeState(z, ci)
         }
 
-        // must be disableed to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
+        // must be disabled to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
         this.setState({
           disableClick: true
         })
       }}
-    ><span onTouchMove={() => this.setState({ disableClick: true })} className={'box checkin checkin' + c + (
+    ><span onTouchMove={() => this.setState({ disableClick: true })} className={'box checkin checkin' + c.state + (
       // today
-      ((this.state.showFadedToday && ci === 0) || this.state.showCheckins) &&
-      (!z.manualCheckins || !z.manualCheckins[z.checkins.length - ci]) ? ' faded' : '')}>
-      {hasNote ? <span className='note-marker'></span> : null}
+      ((this.state.settings.showFadedToday && i === 0) || this.state.settings.showCheckins) && !c.checkin ? ' faded' : '')}>
+      {c.note ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
 
