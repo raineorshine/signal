@@ -123,9 +123,6 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
     label: row.label,
     checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
       const date = moment(startDate).add(days, 'days').format('YYYY-MM-DD')
-      if (days < 10 && row.label === "💤") {
-        console.log('days|date|prev', days, date, prevCheckins)
-      }
       return [
         Object.assign(
           // date, state
@@ -138,7 +135,7 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
           // note
           row.checkins[date] ? { note: row.checkins[date].note } : {},
           // checkin
-          row.checkins[date] && ('state' in row.checkins[date]) && row.checkins[date].state !== STATE_NULL || false ? { checkin: true } : {},
+          (row.checkins[date] && ('state' in row.checkins[date]) && row.checkins[date].state !== STATE_NULL) || false ? { checkin: true } : {},
         )].concat(prevCheckins)
     }, [])
   })) : []
@@ -165,9 +162,8 @@ const migrate1to2 = oldState => {
           // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
           const days = z.checkins.length - i - 1
           const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
-          return Object.assign({
-            date
-          }, z.manualCheckins[days + 1] ? {
+          return Object.assign(z.manualCheckins && z.manualCheckins[days + 1] ? {
+            date,
             state: z.checkins[i]
           } : {}, z.notes && z.notes[days] ? {
             note: z.notes[days]
