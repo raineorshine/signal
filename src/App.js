@@ -391,7 +391,6 @@ class AppComponent extends Component {
     this.sync = this.sync.bind(this)
     this.row = this.row.bind(this)
     this.checkin = this.checkin.bind(this)
-    this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
@@ -657,7 +656,7 @@ class AppComponent extends Component {
           <div className='desktop-mask'></div>
           <div className='content' style={{ marginTop }}>
             {expandedRows ? <div>
-                {this.dates()}
+                <Dates checkins={this.state.rows[0].checkins}/>
                 <div className='rows'>
                   {expandedRows.map(this.row)}
                   { // move col-options to settings if enough habits and two weeks of checkins
@@ -753,26 +752,26 @@ class AppComponent extends Component {
       {c.note ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
-
-  dates() {
-    return <div className='dates'>
-      <div className='box dates-mask'></div>
-      {Object.keys(this.state.rows[0].checkins || {}).map(date => {
-        return <span key={date} className='box date' title={moment(date).format('dddd, M/D')}>{moment(date).format('D')}</span>
-      })}
-    </div>
-  }
 }
 
-const AppComponentConnected = connect(
-  (state, ownProps) => ({
-  }),
-  (dispatch, ownProps) => ({
-  })
-)(AppComponent)
+// const AppComponentConnected = connect(
+//   (state, ownProps) => ({
+//   }),
+//   (dispatch, ownProps) => ({
+//   })
+// )(AppComponent)
 
 const App = () => <Provider store={store}>
-  <AppComponentConnected/>
+  <AppComponent/>
 </Provider>
+
+const Dates = connect()(({ checkins, dispatch }) =>
+  <div className='dates'>
+    <div className='box dates-mask'></div>
+    {Object.keys(checkins || {}).map(date => {
+      return <span key={date} className='box date' title={moment(date).format('dddd, M/D')}>{moment(date).format('D')}</span>
+    })}
+  </div>
+)
 
 export default App
