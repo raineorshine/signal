@@ -105,6 +105,15 @@ describe('checkinWithDecay', () => {
       .toEqual(STATE_NULL)
   })
 
+  it('decays to correct state after several days', () => {
+    expect(checkinWithDecay([
+      { date: '2018-07-25', state: STATE_GREEN, checkin: true },
+      { date: '2018-07-24', state: STATE_YELLOW },
+      { date: '2018-07-23', state: STATE_YELLOW }
+    ], 2, allDaysOfWeek))
+      .toEqual(STATE_GREEN)
+  })
+
   it('does not decay on non-decay days of the week', () => {
     // no decay on Sat
     expect(checkinWithDecay([{ date: '2018-07-21'/*Sunday*/, state: STATE_GREEN }], 1, [true, true, true, true, true, true, false]))
@@ -134,6 +143,7 @@ describe('expandRows', () => {
       }
     ], '2018-07-22', allDaysOfWeek, '2018-07-25')).toEqual([{
       label: 'LABEL',
+      decay: 1,
       checkins: [
         { date: '2018-07-25', state: STATE_RED },
         { date: '2018-07-24', state: STATE_YELLOW },

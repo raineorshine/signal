@@ -5,6 +5,8 @@ import * as throttle from 'lodash.throttle'
 import ClickNHold from 'react-click-n-hold'
 import * as pkg from '../package.json'
 import tutorialImg from './tutorial.png'
+import { createStore } from 'redux'
+import { Provider, connect } from 'react-redux'
 
 /**************************************************************
  * Setup
@@ -72,6 +74,23 @@ if (!localGet('decayDays')) {
 document.body.classList[localGet('night') ? 'add' : 'remove']('night')
 
 /**************************************************************
+ * Store & Reducer
+ **************************************************************/
+
+const initialState = {}
+
+const appReducer = (state = initialState, action) => {
+  switch(action.type) {
+    case 'CHANGE_STATE':
+      return null
+    default:
+      return state
+  }
+}
+
+const store = createStore(appReducer)
+
+/**************************************************************
  * Helper functions
  **************************************************************/
 
@@ -111,7 +130,7 @@ export const checkinWithDecay = (prevCheckins, decay, decayDaysOfWeek) => {
 
   return decay && // row has a decay
     decayDaysOfWeek[moment(prevCheckins[0].date).day()] && // can decay on this day of the week
-    readyToDecay(prevCheckins) // do last for efficiency
+    readyToDecay(prevCheckins, decay) // do last for efficiency
       ? demote(prevCheckins[0].state)
       : prevCheckins[0].state
 }
@@ -121,7 +140,8 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
   const totalDays = moment(endDate).diff(startDate, 'days') + 1
   return rows ? rows.map(row => ({
     label: row.label,
-    checkins: [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
+    decay: row.decay,
+    checkins: row.checkins ? [...Array(totalDays).keys()].reduce((prevCheckins, days) => {
       const date = moment(startDate).add(days, 'days').format('YYYY-MM-DD')
 
       // ignore dates before the first checkin
@@ -137,14 +157,14 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
             // checkin
             row.checkins[date] && ('state' in row.checkins[date]) ? { checkin: true } : {},
           )].concat(prevCheckins)
-      }, [])
+      }, []) : []
   })) : []
 }
 
 const migrate1to2 = oldState => {
 
-  console.log('Migrating schema v1 to v2')
-  console.log('oldState', oldState)
+  console.info('Migrating schema v1 to v2')
+  console.info('oldState', oldState)
 
   const newState = {
     settings: {
@@ -179,8 +199,9 @@ const migrate1to2 = oldState => {
     }))
   }
 
-  console.log('newState', newState)
+  console.info('newState', newState)
 
+  // these also must be synced with firebase in the value handler
   localSet('rows', JSON.stringify(newState.rows))
   localSet('settings', JSON.stringify(newState.settings))
   localSet('schemaVersion', 2)
@@ -192,7 +213,7 @@ const migrate1to2 = oldState => {
  * App
  **************************************************************/
 
-class App extends Component {
+class AppComponent extends Component {
 
   constructor() {
     super()
@@ -208,17 +229,15 @@ class App extends Component {
       settings: localGet('settings'),
       schemaVersion: localGet('schemasVersion')
     } : migrate1to2({
-      zones: localGet('zones') || defaultRows,
-      startDate: startDate,
-      showCheckins: localGet('showCheckins'),
-      showFadedToday: localGet('showFadedToday'),
       decayDays: localGet('decayDays'),
       night: localGet('night'),
+      showCheckins: localGet('showCheckins'),
+      showFadedToday: localGet('showFadedToday'),
+      startDate: startDate,
       // start the tutorial if the user has not checked in yet
-      tutorial: !localGet('lastUpdated')
+      tutorial: !localGet('lastUpdated'),
+      zones: localGet('zones') || defaultRows
     }))
-
-    console.log('state', this.state)
 
     // Set to offline mode in 5 seconds. Cancelled with successful login.
     const offlineTimer = window.setTimeout(() => {
@@ -316,20 +335,24 @@ class App extends Component {
               email: user.email
             })
 
-            if (value.showCheckins) {
-              this.sync('showCheckins', value.showCheckins, true)
-            }
 
-            if (value.night) {
-              this.sync('night', value.night, true)
-            }
+            // settings
+            if (value.settings) {
+              if (value.settings.decayDays) {
+                this.sync('decayDays', value.settings.decayDays, true)
+              }
 
-            if (value.showFadedToday) {
-              this.sync('showFadedToday', value.showFadedToday, true)
-            }
+              if (value.settings.night) {
+                this.sync('night', value.settings.night, true)
+              }
 
-            if (value.decayDays) {
-              this.sync('decayDays', value.decayDays, true)
+              if (value.settings.showCheckins) {
+                this.sync('showCheckins', value.settings.showCheckins, true)
+              }
+
+              if (value.settings.showFadedToday) {
+                this.sync('showFadedToday', value.settings.showFadedToday, true)
+              }
             }
 
             // save start date or legacy start date
@@ -341,10 +364,19 @@ class App extends Component {
               this.sync('rows', value.rows, true)
             }
 
-            // tempoarary during transition from schema v1 to v2
-            if (value.zones && value.lastUpdated > (localGet('lastUpdated') || 0)) {
+            // schema v1 to v2: init
+            if (!value.schemaVersion) {
+              console.info('migrating firebase zones')
               this.sync('zones', value.zones, true)
+
+              this.sync('rows', this.state.rows, false)
+              this.sync('settings', this.state.settings, false)
+              this.sync('schemaVersion', 2, false)
             }
+
+            // old data should be deleted manually as there is no easy way to delete an entire collection
+            // https://firebase.google.com/docs/firestore/manage-data/delete-data
+
             // do nothing if Firebase data is older than stored data
           }
           // if no Firebase data, initialize with defaults
@@ -377,6 +409,7 @@ class App extends Component {
 
   // save to state, localStorage, and Firebase
   sync(key, value, localOnly) {
+
     if (key === 'rows' && !value) {
       throw new Error('Attempt to delete rows')
     }
@@ -409,58 +442,63 @@ class App extends Component {
   }
 
   // toggle the state of a checkin
-  changeState(z, ci) {
-    z.manualCheckins = z.manualCheckins || {}
+  changeState(prevCheckins, decay, c, i) {
+    // console.log('changeState', prevCheckins, decay, this.state.settings.decayDays)
 
     // get conditions and values for determining a decayed checkin
-    const decayedCheckin = checkinWithDecay(z, ci+1)
-    const prevCheckinNull = z.checkins[ci+1] === undefined || z.checkins[ci+1] === STATE_NULL
-    const showFaded = (this.state.settings.showFadedToday && ci === 0) || this.state.settings.showCheckins
+    const decayedCheckin = checkinWithDecay(prevCheckins, decay, this.state.settings.decayDays)
+
+    const checkinsInDecayRange = prevCheckins.slice(0, decay - 1)
+    const value = checkinsInDecayRange.every(c => !c.checkin) && same(checkinsInDecayRange)
+
+    const prevCheckinNull = !prevCheckins[0] || prevCheckins[0].checkin === STATE_NULL
+    const showFaded = (this.state.settings.showFadedToday && i === 0) || this.state.settings.showCheckins
 
     // rotate through decayed checkin
     // (normally, add rotation (green ? before : after) decayed checkin matches next checkin
     const useDecayedCheckin = showFaded &&
-      z.manualCheckins[z.checkins.length - ci] &&
+      prevCheckins[0].checkin &&
       !prevCheckinNull &&
-      (decayedCheckin === STATE_GREEN ? z.checkins[ci] === STATE_YELLOW : z.checkins[ci] === decayedCheckin)
+      (decayedCheckin === STATE_GREEN ? prevCheckins[0] === STATE_YELLOW : prevCheckins[0] === decayedCheckin)
 
     // set new checkin and manual checkin
-    z.checkins.splice(ci, 1, useDecayedCheckin ? decayedCheckin :
-      prevCheckinNull ? promoteWithNull(z.checkins[ci]) :
-      /* modified rotation for decayed green*/(z.checkins[ci] === STATE_GREEN && !z.manualCheckins[z.checkins.length - ci] ? STATE_GREEN :
-      promote(z.checkins[ci])))
-    z.manualCheckins[z.checkins.length - ci] = !useDecayedCheckin
+    prevCheckins[0].state = useDecayedCheckin ? decayedCheckin :
+      prevCheckinNull ? promoteWithNull(prevCheckins[0]) :
+      /* modified rotation for decayed green*/(prevCheckins[0] === STATE_GREEN && !prevCheckins[0].checkin ? STATE_GREEN :
+      promote(prevCheckins[0]))
+
+    prevCheckins[0].checkin = !useDecayedCheckin
 
     // update local immediately
     this.sync('rows', this.state.rows, true)
 
-    // update subsequent decayed check-ins (with animation)
-    let di = ci-1 // stop any animation in progress
-    clearInterval(this.dominoInterval)
-    this.dominoInterval = setInterval(() => {
+    // // update subsequent decayed check-ins (with animation)
+    // let di = ci-1 // stop any animation in progress
+    // clearInterval(this.dominoInterval)
+    // this.dominoInterval = setInterval(() => {
 
-      // only update decayed check-ins coming after the current item
-      if (di >= 0 && !z.manualCheckins[z.checkins.length - di]) {
+    //   // only update decayed check-ins coming after the current item
+    //   if (di >= 0 && !z.manualCheckins[z.checkins.length - di]) {
 
-        // update rows
-        z.checkins.splice(di, 1, checkinWithDecay(z, di+1))
+    //     // update rows
+    //     z.checkins.splice(di, 1, checkinWithDecay(z, di+1))
 
-        // advance animation
-        di--
+    //     // advance animation
+    //     di--
 
-        // update local during animation
-        this.sync('rows', this.state.rows, true)
-      }
-      else {
-        // end animation
-        clearInterval(this.dominoInterval)
+    //     // update local during animation
+    //     this.sync('rows', this.state.rows, true)
+    //   }
+    //   else {
+    //     // end animation
+    //     clearInterval(this.dominoInterval)
 
-        // update Firebase at end of animation
-        // (also applies if there were no subsequent decayed checkins)
-        this.sync('rows', this.state.rows)
-      }
+    //     // update Firebase at end of animation
+    //     // (also applies if there were no subsequent decayed checkins)
+    //     this.sync('rows', this.state.rows)
+    //   }
 
-    }, 60)
+    // }, 60)
   }
 
   addRow() {
@@ -657,11 +695,13 @@ class App extends Component {
         </span>
         <span className='box row-label' onClick={() => this.editRow(row)}>{row.label}</span>
       </span>
-      <span className='checkins'>{row.checkins ? row.checkins.map(this.checkin) : null}</span>
+      <span className='checkins'>{row.checkins ? row.checkins.map((c, i) => {
+        return this.checkin(row, c, i)
+      }) : null}</span>
     </div>
   }
 
-  checkin(c, i) {
+  checkin(row, c, i) {
     return <ClickNHold
       key={i}
       className='clicknhold'
@@ -698,8 +738,8 @@ class App extends Component {
         // normal click event
         // treat mouse event as duplicate and ignore if on a touchscreen
         if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
-          // TODO
-          // this.changeState(z, ci)
+          const prevCheckins = row.checkins.slice(i, i + row.decay + 1)
+          this.changeState(prevCheckins, row.decay, c, i)
         }
 
         // must be disabled to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
@@ -723,5 +763,16 @@ class App extends Component {
     </div>
   }
 }
+
+const AppComponentConnected = connect(
+  (state, ownProps) => ({
+  }),
+  (dispatch, ownProps) => ({
+  })
+)(AppComponent)
+
+const App = () => <Provider store={store}>
+  <AppComponentConnected/>
+</Provider>
 
 export default App
