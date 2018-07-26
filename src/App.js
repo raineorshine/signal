@@ -393,7 +393,6 @@ class AppComponent extends Component {
 
     this.toggleSettings = this.toggleSettings.bind(this)
     this.sync = this.sync.bind(this)
-    this.row = this.row.bind(this)
     this.render = this.render.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
@@ -661,7 +660,9 @@ class AppComponent extends Component {
             {expandedRows ? <div>
                 <Dates checkins={this.state.rows[0].checkins}/>
                 <div className='rows'>
-                  {expandedRows.map(this.row)}
+                  {expandedRows.map((row, i) =>
+                    <Row key={row.label} disableClick={this.state.disableClick} settings={this.state.settings} totalRows={this.state.rows.length} touch={this.state.touch} row={row} i={i} windowHeight={this.state.windowHeight} scrollY={this.state.scrollY} />
+                  )}
                   { // move col-options to settings if enough habits and two weeks of checkins
                     this.state.showSettings || expandedRows.length < 5 || expandedRows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + expandedRows.length * 50 - this.state.scrollY }}>
                     <span className='box'>
@@ -677,32 +678,32 @@ class AppComponent extends Component {
       }
     </div>
   }
-
-  row(row, i) {
-    const contentHeight = this.state.rows.length * 50
-    const marginTop = Math.max(65, (this.state.windowHeight - contentHeight)/2)
-    const top = marginTop + i*50 - this.state.scrollY
-    return <div className='row' key={row.label}>
-      <span className='left-controls' style={{ top }}>
-        <span className='row-options'>
-          { i > 0
-            ? <span className='box option option-row' onClick={() => this.moveRowUp(row)}>↑</span>
-            : <span className='box option option-row option-hidden'></span>
-          }
-          { i < this.state.rows.length-1
-            ? <span className='box option option-row' onClick={() => this.moveRowDown(row)}>↓</span>
-            : <span className='box option option-row option-hidden'></span>
-          }
-          <span className='box option option-row' onClick={() => this.removeRow(row)}>-</span>
-        </span>
-        <span className='box row-label' onClick={() => this.editRow(row)}>{row.label}</span>
-      </span>
-      <span className='checkins'>{row.checkins ? row.checkins.map((c, i) => {
-        return <Checkin key={i} row={row} c={c} i={i} disableClick={this.state.disableClick} settings={this.state.settings} touch={this.state.touch} />
-      }) : null}</span>
-    </div>
-  }
 }
+
+const Row = connect()(({ disableClick, settings, scrollY, totalRows, touch, windowHeight, row, i, dispatch }) => {
+  const contentHeight = totalRows * 50
+  const marginTop = Math.max(65, (windowHeight - contentHeight)/2)
+  const top = marginTop + i*50 - scrollY
+  return <div className='row'>
+    <span className='left-controls' style={{ top }}>
+      <span className='row-options'>
+        { i > 0
+          ? <span className='box option option-row' onClick={() => dispatch({ type: 'MOVE_ROW_UP', value: row })}>↑</span>
+          : <span className='box option option-row option-hidden'></span>
+        }
+        { i < totalRows - 1
+          ? <span className='box option option-row' onClick={() => dispatch({ type: 'MOVE_ROW_DOWN', value: row })}>↓</span>
+          : <span className='box option option-row option-hidden'></span>
+        }
+        <span className='box option option-row' onClick={() => dispatch({ type: 'REMOVE_ROW', value: row })}>-</span>
+      </span>
+      <span className='box row-label' onClick={() => dispatch({ type: 'EDIT_ROW', value: row })}>{row.label}</span>
+    </span>
+    <span className='checkins'>{row.checkins ? row.checkins.map((c, i) => {
+      return <Checkin key={i} row={row} c={c} i={i} disableClick={disableClick} settings={settings} touch={touch} />
+    }) : null}</span>
+  </div>
+})
 
 const Checkin = connect()(({ row, c, i, disableClick, settings, touch, dispatch }) =>
   <ClickNHold
