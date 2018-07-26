@@ -81,6 +81,10 @@ const initialState = {}
 
 const appReducer = (state = initialState, action) => {
   switch(action.type) {
+    case 'DISABLE_CLICK':
+      return Object.assign({}, state, {
+        disableClick: action.value
+      })
     case 'CHANGE_STATE':
       return null
     default:
@@ -390,7 +394,6 @@ class AppComponent extends Component {
     this.toggleSettings = this.toggleSettings.bind(this)
     this.sync = this.sync.bind(this)
     this.row = this.row.bind(this)
-    this.checkin = this.checkin.bind(this)
     this.render = this.render.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
@@ -695,64 +698,54 @@ class AppComponent extends Component {
         <span className='box row-label' onClick={() => this.editRow(row)}>{row.label}</span>
       </span>
       <span className='checkins'>{row.checkins ? row.checkins.map((c, i) => {
-        return this.checkin(row, c, i)
+        return <Checkin key={i} row={row} c={c} i={i} disableClick={this.state.disableClick} settings={this.state.settings} touch={this.state.touch} />
       }) : null}</span>
     </div>
   }
-
-  checkin(row, c, i) {
-    return <ClickNHold
-      key={i}
-      className='clicknhold'
-      time={0.5}
-      onStart={(e) => {
-        this.setState({
-          disableClick: false
-        })
-      }}
-      onClickNHold={() => {
-        if (!this.state.disableClick) {
-          // TODO
-          // this.setState({
-          //   noteEdit: { z, zi, ci }
-          // })
-
-          // delayed actions
-          window.setTimeout(() => {
-            // focus on text box
-            const noteText = document.querySelector('.note-text')
-            if (noteText) {
-              noteText.focus()
-            }
-
-            // enable close button
-            // if this is not delayed, then overlapping touch events on the bottom rows cause the notes to accidentally close immediately after opening
-            this.setState({
-              noteEditReady: true
-            })
-          }, 350)
-        }
-      }}
-      onEnd={(e, enough) => {
-        // normal click event
-        // treat mouse event as duplicate and ignore if on a touchscreen
-        if (!this.state.disableClick && !enough && !(this.state.touch && e.type === 'mouseup')) {
-          const prevCheckins = row.checkins.slice(i, i + row.decay + 1)
-          this.changeState(prevCheckins, row.decay, c, i)
-        }
-
-        // must be disabled to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
-        this.setState({
-          disableClick: true
-        })
-      }}
-    ><span onTouchMove={() => this.setState({ disableClick: true })} className={'box checkin checkin' + c.state + (
-      // today
-      ((this.state.settings.showFadedToday && i === 0) || this.state.settings.showCheckins) && !c.checkin ? ' faded' : '')}>
-      {c.note ? <span className='note-marker'></span> : null}
-    </span></ClickNHold>
-  }
 }
+
+const Checkin = connect()(({ row, c, i, disableClick, settings, touch, dispatch }) =>
+  <ClickNHold
+    className='clicknhold'
+    time={0.5}
+    onStart={(e) => {
+      dispatch({ type: 'DISABLE_CLICK', value: false })
+    }}
+    onClickNHold={() => {
+      if (!disableClick) {
+        dispatch({ type: 'NOTE_EDIT', value: { } })
+
+        // delayed actions
+        window.setTimeout(() => {
+          // focus on text box
+          const noteText = document.querySelector('.note-text')
+          if (noteText) {
+            noteText.focus()
+          }
+
+          // enable close button
+          // if this is not delayed, then overlapping touch events on the bottom rows cause the notes to accidentally close immediately after opening
+          dispatch({ type: 'NOTE_EDIT_READY', value: true })
+        }, 350)
+      }
+    }}
+    onEnd={(e, enough) => {
+      // normal click event
+      // treat mouse event as duplicate and ignore if on a touchscreen
+      if (!disableClick && !enough && !(touch && e.type === 'mouseup')) {
+        const prevCheckins = row.checkins.slice(i, i + row.decay + 1)
+        this.changeState(prevCheckins, row.decay, c, i)
+      }
+
+      // must be disabled to avoid duplicate onMouseDown/onTouchStart that the ClickNHold component uses
+      dispatch({ type: 'DISABLE_CLICK', value: true })
+    }}
+  ><span onTouchMove={() => dispatch({ type: 'DISABLE_CLICK', value: true })} className={'box checkin checkin' + c.state + (
+    // today
+    ((settings.showFadedToday && i === 0) || settings.showCheckins) && !c.checkin ? ' faded' : '')}>
+    {c.note ? <span className='note-marker'></span> : null}
+  </span></ClickNHold>
+)
 
 // const AppComponentConnected = connect(
 //   (state, ownProps) => ({
@@ -760,10 +753,6 @@ class AppComponent extends Component {
 //   (dispatch, ownProps) => ({
 //   })
 // )(AppComponent)
-
-const App = () => <Provider store={store}>
-  <AppComponent/>
-</Provider>
 
 const Dates = connect()(({ checkins, dispatch }) =>
   <div className='dates'>
@@ -773,5 +762,9 @@ const Dates = connect()(({ checkins, dispatch }) =>
     })}
   </div>
 )
+
+const App = () => <Provider store={store}>
+  <AppComponent/>
+</Provider>
 
 export default App
