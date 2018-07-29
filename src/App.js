@@ -77,6 +77,54 @@ document.body.classList[localGet('night') ? 'add' : 'remove']('night')
  * Store & Reducer
  **************************************************************/
 
+const migrate1to2 = oldState => {
+
+  console.info('Migrating schema v1 to v2')
+  console.info('oldState', oldState)
+
+  const newState = {
+    settings: {
+      showCheckins: oldState.showCheckins,
+      showFadedToday: oldState.showFadedToday,
+      decayDays: oldState.decayDays,
+      night: oldState.night
+    },
+    rows: oldState.zones.map(z => ({
+      decay: z.decay || 0,
+      label: z.label,
+      checkins: Object.keys(z.checkins)
+        .map((value, i) => {
+          // create a new 0-based, right-aligned index
+          // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
+          const days = z.checkins.length - i - 1
+          const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
+          return Object.assign(z.manualCheckins && z.manualCheckins[days + 1] ? {
+            date,
+            state: z.checkins[i]
+          } : {}, z.notes && z.notes[days] ? {
+            note: z.notes[days]
+          } : {})
+        })
+        // convert back to object
+        // filter out empty checkins
+        .reduce((prev, next, i) => {
+          return Object.keys(next).length ? Object.assign({}, prev, {
+            [next.date]: next
+          }) : prev
+        }, {})
+    }))
+  }
+
+  console.info('newState', newState)
+
+  // these also must be synced with firebase in the value handler
+  localSet('rows', JSON.stringify(newState.rows))
+  localSet('settings', JSON.stringify(newState.settings))
+  localSet('schemaVersion', 2)
+
+  return newState
+}
+
 const startDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
 const initialState = Object.assign({
   startDate,
@@ -94,7 +142,7 @@ const initialState = Object.assign({
   startDate,
   // start the tutorial if the user has not checked in yet
   tutorial: !localGet('lastUpdated'),
-  zones: localGet('zones') || defaultRows
+  zones: localGet('zones') || JSON.parse(defaultRows)
 }))
 
 const appReducer = (state = initialState, action) => {
@@ -393,59 +441,11 @@ export const expandRows = (rows, startDate, decayDays, endDate) => {
   })) : []
 }
 
-const migrate1to2 = oldState => {
-
-  console.info('Migrating schema v1 to v2')
-  console.info('oldState', oldState)
-
-  const newState = {
-    settings: {
-      showCheckins: oldState.showCheckins,
-      showFadedToday: oldState.showFadedToday,
-      decayDays: oldState.decayDays,
-      night: oldState.night
-    },
-    rows: oldState.zones.map(z => ({
-      decay: z.decay || 0,
-      label: z.label,
-      checkins: Object.keys(z.checkins)
-        .map((value, i) => {
-          // create a new 0-based, right-aligned index
-          // subtract 1 because the index for manualCheckins is 1-based instead of 0-based
-          const days = z.checkins.length - i - 1
-          const date = moment(oldState.startDate).add(days, 'days').format('YYYY-MM-DD')
-          return Object.assign(z.manualCheckins && z.manualCheckins[days + 1] ? {
-            date,
-            state: z.checkins[i]
-          } : {}, z.notes && z.notes[days] ? {
-            note: z.notes[days]
-          } : {})
-        })
-        // convert back to object
-        // filter out empty checkins
-        .reduce((prev, next, i) => {
-          return Object.keys(next).length ? Object.assign({}, prev, {
-            [next.date]: next
-          }) : prev
-        }, {})
-    }))
-  }
-
-  console.info('newState', newState)
-
-  // these also must be synced with firebase in the value handler
-  localSet('rows', JSON.stringify(newState.rows))
-  localSet('settings', JSON.stringify(newState.settings))
-  localSet('schemaVersion', 2)
-
-  return newState
-}
-
 /**************************************************************
  * App
  **************************************************************/
 
-class AppComponent extends Component {
+class AppComponentOld extends Component {
 
   constructor() {
     super()
@@ -614,109 +614,106 @@ class AppComponent extends Component {
     }
     this.sync('rows', this.state.rows)
   }
+ }
 
-  /**************************************************************
-   * Render
-   **************************************************************/
+const AppComponent = connect()(() => {
 
-  render() {
-    // used to vertically center the content
-    const contentHeight = this.state.rows.length * 50
-    const marginTop = Math.max(0, (window.innerHeight - contentHeight)/2 - 65)
+  const state = store.getState()
 
-    // expand rows
+  // used to vertically center the content
+  const contentHeight = state.rows.length * 50
+  const marginTop = Math.max(0, (window.innerHeight - contentHeight)/2 - 65)
 
-    // expand checkins from right to left
-    const expandedRows = expandRows(this.state.rows, this.state.startDate, this.state.settings.decayDays)
+  // expand checkins from right to left
+  const expandedRows = expandRows(state.rows, state.startDate, state.settings.decayDays)
 
-    return <div
-      className={'app' + (this.state.showSettings ? ' settings-active' : '')}
-      // keep track of touch devices so that we can disable duplicate touch/mousedown events
-      onTouchStart={() => store.dispatch({ type: 'TOUCH' })}
-    >
+  return <div
+    className={'app' + (state.showSettings ? ' settings-active' : '')}
+    // keep track of touch devices so that we can disable duplicate touch/mousedown events
+    onTouchStart={() => state.dispatch({ type: 'TOUCH' })}
+  >
 
-      { // tutorial
-        this.state.tutorial ? <div className='popup-container tutorial-container' onClick={() => store.dispatch({ type: 'TUTORIAL', value: false })}>
-          <div className='popup tutorial-popup'>
-            <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
-            <p className='tutorial-text'>
-              Keep track of habits! <span className='tutorial-colored-text tutorial-red'>Red</span>, <span className='tutorial-colored-text tutorial-yellow'>yellow</span>, <span className='tutorial-colored-text tutorial-green'>green</span>—you choose what each one means!<br/>
-              <a className='button tutorial-button'>Let's Go!</a>
-            </p>
-          </div>
-        </div> : null}
-
-      { // notes
-        this.state.noteEdit ? <div className='popup-container note-container'>
-        <div className='popup note-popup'>
-          <p className='note-label'>{this.state.noteEdit.z.label}</p>
-          <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1, 'days').format('dddd, MMMM Do')}</p>
-          <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.zi, this.state.noteEdit.ci, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1]}></textarea>
-          <a className='button note-button' onClick={this.state.noteEditReady ? () => store.dispatch({ type: 'ESCAPE' }) : null}>Close</a>
+    { // tutorial
+      state.tutorial ? <div className='popup-container tutorial-container' onClick={() => state.dispatch({ type: 'TUTORIAL', value: false })}>
+        <div className='popup tutorial-popup'>
+          <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
+          <p className='tutorial-text'>
+            Keep track of habits! <span className='tutorial-colored-text tutorial-red'>Red</span>, <span className='tutorial-colored-text tutorial-yellow'>yellow</span>, <span className='tutorial-colored-text tutorial-green'>green</span>—you choose what each one means!<br/>
+            <a className='button tutorial-button'>Let's Go!</a>
+          </p>
         </div>
       </div> : null}
 
-      { // main content
-        // do not render in background of notes on mobile; causes feint gridlines to appear when note closes
-        !this.state.tutorial && !(this.state.touch && this.state.noteEdit) ? <div>
-          <div className='status'>
-            {this.state.offline ? <span className='status-offline'>Working Offline</span> :
-            !this.state.user ? <span className='status-loading'>Signing in...</span>
-            : null}
-          </div>
-          <div className='top-options'>
-            {this.state.showSettings ? <span className='settings-content'>
-              Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
-                <input key={day} type='checkbox' checked={this.state.settings.decayDays[day]} onChange={() => {
-                  this.state.settings.decayDays.splice(day, 1, !this.state.settings.decayDays[day])
-                  return this.sync('decayDays', this.state.settings.decayDays)}
-                }/>
-              )}</span><br/>
-              Show today's checkins: <input type='checkbox' disabled={this.state.settings.showCheckins} checked={this.state.settings.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.settings.showFadedToday)} /><br/>
-              Show all checkins: <input type='checkbox' checked={this.state.settings.showCheckins} onChange={() => this.sync('showCheckins', !this.state.settings.showCheckins)} /><br/>
-              Night Mode 🌙: <input type='checkbox' checked={this.state.settings.night} onChange={() => {
-                document.body.classList[!this.state.settings.night ? 'add' : 'remove']('night')
-                this.sync('night', !this.state.settings.night, true)
-              }} /><br />
-              <a className='settings-showintro text-small' onClick={() => store.dispatch({ type: 'TUTORIAL', value: true })}>Show Intro</a><br/>
-              <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
-              <hr/>
-              <div className='text-small'>
-              {this.state.user ? <span>
-                <span className='dim'>Logged in as: </span>{this.state.user.email}<br/>
-                <span className='dim'>User ID: </span><span className='mono'>{this.state.user.uid}</span><br/>
-              </span> : null}
-              <span className='dim'>Version: </span>{pkg.version}
-              </div>
-            </span> : null}
-            <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={() => /*TODO*/store.dispatch({ type: 'TOGGLE_SETTINGS' })}>⚙️</span>
-          </div>
+    { // notes
+      state.noteEdit ? <div className='popup-container note-container'>
+      <div className='popup note-popup'>
+        <p className='note-label'>{state.noteEdit.z.label}</p>
+        <p className='note-date'>{moment(state.startDate).add(state.noteEdit.z.checkins.length - state.noteEdit.ci - 1, 'days').format('dddd, MMMM Do')}</p>
+        <textarea className='note-text' onInput={(e) => this.editNote(state.noteEdit.zi, state.noteEdit.ci, e.target.value)} defaultValue={state.noteEdit.z.notes && state.noteEdit.z.notes[state.noteEdit.z.checkins.length - state.noteEdit.ci - 1]}></textarea>
+        <a className='button note-button' onClick={state.noteEditReady ? () => state.dispatch({ type: 'ESCAPE' }) : null}>Close</a>
+      </div>
+    </div> : null}
 
-          <div className='gradient'></div>
-          <div className='desktop-mask'></div>
-          <div className='content' style={{ marginTop }}>
-            {expandedRows ? <div>
-                <Dates checkins={this.state.rows[0].checkins}/>
-                <div className='rows'>
-                  {expandedRows.map((row, i) =>
-                    <Row key={row.label} disableClick={this.state.disableClick} settings={this.state.settings} totalRows={this.state.rows.length} touch={this.state.touch} row={row} i={i} windowHeight={this.state.windowHeight} scrollY={this.state.scrollY} />
-                  )}
-                  { // move col-options to settings if enough habits and two weeks of checkins
-                    this.state.showSettings || expandedRows.length < 5 || expandedRows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + expandedRows.length * 50 - this.state.scrollY }}>
-                    <span className='box'>
-                      <span className='box option col-option' onClick={this.addRow}>+</span>
-                    </span>
-                  </div> : null}
-                </div>
+    { // main content
+      // do not render in background of notes on mobile; causes feint gridlines to appear when note closes
+      !state.tutorial && !(state.touch && state.noteEdit) ? <div>
+        <div className='status'>
+          {state.offline ? <span className='status-offline'>Working Offline</span> :
+          !state.user ? <span className='status-loading'>Signing in...</span>
+          : null}
+        </div>
+        <div className='top-options'>
+          {state.showSettings ? <span className='settings-content'>
+            Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
+              <input key={day} type='checkbox' checked={state.settings.decayDays[day]} onChange={() => {
+                state.settings.decayDays.splice(day, 1, !state.settings.decayDays[day])
+                return this.sync('decayDays', state.settings.decayDays)}
+              }/>
+            )}</span><br/>
+            Show today's checkins: <input type='checkbox' disabled={state.settings.showCheckins} checked={state.settings.showFadedToday} onChange={() => this.sync('showFadedToday', !state.settings.showFadedToday)} /><br/>
+            Show all checkins: <input type='checkbox' checked={state.settings.showCheckins} onChange={() => this.sync('showCheckins', !state.settings.showCheckins)} /><br/>
+            Night Mode 🌙: <input type='checkbox' checked={state.settings.night} onChange={() => {
+              document.body.classList[!state.settings.night ? 'add' : 'remove']('night')
+              this.sync('night', !state.settings.night, true)
+            }} /><br />
+            <a className='settings-showintro text-small' onClick={() => state.dispatch({ type: 'TUTORIAL', value: true })}>Show Intro</a><br/>
+            <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
+            <hr/>
+            <div className='text-small'>
+            {state.user ? <span>
+              <span className='dim'>Logged in as: </span>{state.user.email}<br/>
+              <span className='dim'>User ID: </span><span className='mono'>{state.user.uid}</span><br/>
+            </span> : null}
+            <span className='dim'>Version: </span>{pkg.version}
+            </div>
+          </span> : null}
+          <span role='img' aria-label='settings' className={'settings-option' + (state.showSettings ? ' active' : '')} onClick={() => /*TODO*/state.dispatch({ type: 'TOGGLE_SETTINGS' })}>⚙️</span>
+        </div>
+
+        <div className='gradient'></div>
+        <div className='desktop-mask'></div>
+        <div className='content' style={{ marginTop }}>
+          {expandedRows ? <div>
+              <Dates checkins={state.rows[0].checkins}/>
+              <div className='rows'>
+                {expandedRows.map((row, i) =>
+                  <Row key={row.label} disableClick={state.disableClick} settings={state.settings} totalRows={state.rows.length} touch={state.touch} row={row} i={i} windowHeight={state.windowHeight} scrollY={state.scrollY} />
+                )}
+                { // move col-options to settings if enough habits and two weeks of checkins
+                  state.showSettings || expandedRows.length < 5 || expandedRows[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + expandedRows.length * 50 - state.scrollY }}>
+                  <span className='box'>
+                    <span className='box option col-option' onClick={this.addRow}>+</span>
+                  </span>
+                </div> : null}
               </div>
-              : <p className='loading'>Loading data...</p>
-            }
-          </div>
-        </div> : null
-      }
-    </div>
-  }
-}
+            </div>
+            : <p className='loading'>Loading data...</p>
+          }
+        </div>
+      </div> : null
+    }
+  </div>
+})
 
 const Row = connect()(({ disableClick, settings, scrollY, totalRows, touch, windowHeight, row, i, dispatch }) => {
   const contentHeight = totalRows * 50
@@ -785,13 +782,6 @@ const Checkin = connect()(({ row, c, i, disableClick, settings, touch, dispatch 
     {c.note ? <span className='note-marker'></span> : null}
   </span></ClickNHold>
 )
-
-// const AppComponentConnected = connect(
-//   (state, ownProps) => ({
-//   }),
-//   (dispatch, ownProps) => ({
-//   })
-// )(AppComponent)
 
 const Dates = connect()(({ checkins, dispatch }) =>
   <div className='dates'>
