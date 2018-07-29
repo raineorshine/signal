@@ -80,19 +80,178 @@ document.body.classList[localGet('night') ? 'add' : 'remove']('night')
 const initialState = {}
 
 const appReducer = (state = initialState, action) => {
+  console.log('DISPATCH', action)
   switch(action.type) {
     case 'DISABLE_CLICK':
-      return Object.assign({}, state, {
-        disableClick: action.value
-      })
-    case 'CHANGE_STATE':
-      return null
+      return Object.assign({}, state, { disableClick: action.value })
+    case 'FIREBASE_CONNECTED':
+      const { offline, userRef, user } = action
+      return Object.assign({}, state, { offline, userRef, user })
+    case 'OFFLINE':
+      return Object.assign({}, state, { offline: action.value })
+    case 'SYNC':
+      sync(action.key, action.value, action.local)
+      return state
     default:
       return state
   }
 }
 
 const store = createStore(appReducer)
+
+// Set to offline mode in 5 seconds. Cancelled with successful login.
+const offlineTimer = window.setTimeout(() => {
+  store.dispatch({ type: 'SYNC', key: 'offline', local: true })
+}, 5000)
+
+// check if user is logged in
+if (firebase) {
+  firebase.auth().onAuthStateChanged(user => {
+
+    // if not logged in, redirect to OAuth login
+    if (!user) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithRedirect(provider)
+      return
+    }
+
+    // disable offline mode
+    window.clearTimeout(offlineTimer)
+
+    // if logged in, save the user ref and uid into state
+    const userRef = firebase.database().ref('users/' + user.uid)
+    store.dispatch({
+      type: 'FIREBASE_CONNECTED',
+      offline: false,
+      userRef,
+      user
+    })
+
+    // delay presence detection to avoid initial disconnected state
+    setTimeout(() => {
+      const connectedRef = firebase.database().ref(".info/connected")
+      connectedRef.on('value', snap => {
+        const connected = snap.val()
+
+        // update offline state
+        store.dispatch({ type: 'OFFLINE', value: !connected })
+
+        // when reconnecting, if there are missing days, fill them in, but do not update Firebase
+        if (connected) {
+          const missingDays = moment().diff(localGet('startDate'), 'days') - store.getState().rows[0].checkins.length + 1
+          if (missingDays > 0) {
+            store.dispatch({ type: 'SYNC', key: 'rows', value: store.getState().rows, local: true })
+          }
+        }
+      })
+    }, 1000)
+
+    // set latest uid so that offline data is loaded from last user
+    // do NOT use localSet (because latestUid is not namespaced by itself)
+    // if this is the first login for the user, copy over from temp
+    localStorage.latestUid = user.uid
+    if (!localGet('rows')) {
+      localSet('rows', localGetTemp('rows'))
+      localSet('settings', localGetTemp('settings'))
+    }
+
+    // load Firebase data
+    userRef.on('value', snapshot => {
+      const value = snapshot.val()
+
+      if (value) {
+
+        // update user information
+        userRef.update({
+          name: user.displayName,
+          email: user.email
+        })
+
+
+        // settings
+        if (value.settings) {
+          if (value.settings.decayDays) {
+            store.dispatch({ type: 'SYNC', key: 'decayDays', value: value.settings.decayDays, local: true })
+          }
+
+          if (value.settings.night) {
+            store.dispatch({ type: 'SYNC', key: 'night', value: value.settings.night, local: true })
+          }
+
+          if (value.settings.showCheckins) {
+            store.dispatch({ type: 'SYNC', key: 'showCheckins', value: value.settings.showCheckins, local: true })
+          }
+
+          if (value.settings.showFadedToday) {
+            store.dispatch({ type: 'SYNC', key: 'showFadedToday', value: value.settings.showFadedToday, local: true })
+          }
+        }
+
+        // save start date or legacy start date
+        const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
+        store.dispatch({ type: 'SYNC', key: 'startDate', value: startDate, local: true })
+
+        // if Firebase data is newer than stored data, update localStorage
+        if (value.rows && value.lastUpdated > (localGet('lastUpdated') || 0)) {
+          store.dispatch({ type: 'SYNC', key: 'rows', value: value.rows, local: true })
+        }
+
+        // schema v1 to v2: init
+        if (!value.schemaVersion) {
+          console.info('migrating firebase zones')
+          store.dispatch({ type: 'SYNC', key: 'zones', value: value.zones, local: true })
+
+          store.dispatch({ type: 'SYNC', key: 'rows', value: this.state.rows, local: false })
+          store.dispatch({ type: 'SYNC', key: 'settings', value: this.state.settings, local: false })
+          store.dispatch({ type: 'SYNC', key: 'schemaVersion', value: 2, local: false })
+        }
+
+        // old data should be deleted manually as there is no easy way to delete an entire collection
+        // https://firebase.google.com/docs/firestore/manage-data/delete-data
+
+        // do nothing if Firebase data is older than stored data
+      }
+      // if no Firebase data, initialize with defaults
+      else {
+        store.dispatch({ type: 'SYNC', key: 'rows', value: null, local: true })
+      }
+    })
+  })
+}
+
+// save to state, localStorage, and Firebase
+const sync = (key, value, localOnly) => {
+
+  if (key === 'rows' && !value) {
+    throw new Error('Attempt to delete rows')
+  }
+
+  store.dispatch({ type: 'SET', key, value }, () => {
+
+    // update localStorage
+    localSet(key, key === 'startDate' ? value : JSON.stringify(value))
+
+    // update Firebase
+    if (!localOnly) {
+
+      // if syncing rows, update lastUpdated in localStorage
+      if (key === 'rows') {
+        localSet('lastUpdated', Date.now())
+      }
+
+      store.getState().userRef.update(
+        // if syncing rows, set the start date and lastUpdated
+        key === 'rows' ? {
+          rows: value,
+          startDate: this.state.startDate,
+          lastUpdated: Date.now()
+        }
+        // otherwise just set the value
+        : { [key]: value }
+      )
+    }
+  })
+}
 
 /**************************************************************
  * Helper functions
@@ -243,11 +402,6 @@ class AppComponent extends Component {
       zones: localGet('zones') || defaultRows
     }))
 
-    // Set to offline mode in 5 seconds. Cancelled with successful login.
-    const offlineTimer = window.setTimeout(() => {
-      this.setState({ offline: true })
-    }, 5000)
-
     // update scroll for fixing position:fixed controls
     window.addEventListener('scroll', () => {
       this.setState({ scrollY: window.scrollY })
@@ -277,122 +431,7 @@ class AppComponent extends Component {
       }
     })
 
-    // check if user is logged in
-    if (firebase) {
-      firebase.auth().onAuthStateChanged(user => {
-
-        // if not logged in, redirect to OAuth login
-        if (!user) {
-          const provider = new firebase.auth.GoogleAuthProvider();
-          firebase.auth().signInWithRedirect(provider)
-          return
-        }
-
-        // disable offline mode
-        window.clearTimeout(offlineTimer)
-
-        // if logged in, save the user ref and uid into state
-        const userRef = firebase.database().ref('users/' + user.uid)
-        this.setState({
-          offline: false,
-          userRef,
-          user
-        })
-
-        // delay presence detection to avoid initial disconnected state
-        setTimeout(() => {
-          const connectedRef = firebase.database().ref(".info/connected")
-          connectedRef.on('value', snap => {
-            const connected = snap.val()
-
-            // update offline state
-            this.setState({ offline: !connected })
-
-            // when reconnecting, if there are missing days, fill them in, but do not update Firebase
-            if (connected) {
-              const missingDays = moment().diff(localGet('startDate'), 'days') - this.state.rows[0].checkins.length + 1
-              if (missingDays > 0) {
-                this.sync('rows', this.state.rows, true)
-              }
-            }
-          })
-        }, 1000)
-
-        // set latest uid so that offline data is loaded from last user
-        // do NOT use localSet (because latestUid is not namespaced by itself)
-        // if this is the first login for the user, copy over from temp
-        localStorage.latestUid = user.uid
-        if (!localGet('rows')) {
-          localSet('rows', localGetTemp('rows'))
-          localSet('settings', localGetTemp('settings'))
-        }
-
-        // load Firebase data
-        userRef.on('value', snapshot => {
-          const value = snapshot.val()
-
-          if (value) {
-
-            // update user information
-            userRef.update({
-              name: user.displayName,
-              email: user.email
-            })
-
-
-            // settings
-            if (value.settings) {
-              if (value.settings.decayDays) {
-                this.sync('decayDays', value.settings.decayDays, true)
-              }
-
-              if (value.settings.night) {
-                this.sync('night', value.settings.night, true)
-              }
-
-              if (value.settings.showCheckins) {
-                this.sync('showCheckins', value.settings.showCheckins, true)
-              }
-
-              if (value.settings.showFadedToday) {
-                this.sync('showFadedToday', value.settings.showFadedToday, true)
-              }
-            }
-
-            // save start date or legacy start date
-            const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
-            this.sync('startDate', startDate, true)
-
-            // if Firebase data is newer than stored data, update localStorage
-            if (value.rows && value.lastUpdated > (localGet('lastUpdated') || 0)) {
-              this.sync('rows', value.rows, true)
-            }
-
-            // schema v1 to v2: init
-            if (!value.schemaVersion) {
-              console.info('migrating firebase zones')
-              this.sync('zones', value.zones, true)
-
-              this.sync('rows', this.state.rows, false)
-              this.sync('settings', this.state.settings, false)
-              this.sync('schemaVersion', 2, false)
-            }
-
-            // old data should be deleted manually as there is no easy way to delete an entire collection
-            // https://firebase.google.com/docs/firestore/manage-data/delete-data
-
-            // do nothing if Firebase data is older than stored data
-          }
-          // if no Firebase data, initialize with defaults
-          else {
-            this.sync('rows', null, true)
-          }
-        })
-      })
-    }
-
     this.toggleSettings = this.toggleSettings.bind(this)
-    this.sync = this.sync.bind(this)
     this.render = this.render.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
@@ -406,40 +445,6 @@ class AppComponent extends Component {
   // state only
   toggleSettings() {
     this.setState({ showSettings: !this.state.showSettings })
-  }
-
-  // save to state, localStorage, and Firebase
-  sync(key, value, localOnly) {
-
-    if (key === 'rows' && !value) {
-      throw new Error('Attempt to delete rows')
-    }
-
-    this.setState({ [key]: value }, () => {
-
-      // update localStorage
-      localSet(key, key === 'startDate' ? value : JSON.stringify(value))
-
-      // update Firebase
-      if (!localOnly) {
-
-        // if syncing rows, update lastUpdated in localStorage
-        if (key === 'rows') {
-          localSet('lastUpdated', Date.now())
-        }
-
-        this.state.userRef.update(
-          // if syncing rows, set the start date and lastUpdated
-          key === 'rows' ? {
-            rows: value,
-            startDate: this.state.startDate,
-            lastUpdated: Date.now()
-          }
-          // otherwise just set the value
-          : { [key]: value }
-        )
-      }
-    })
   }
 
   // toggle the state of a checkin
