@@ -77,7 +77,25 @@ document.body.classList[localGet('night') ? 'add' : 'remove']('night')
  * Store & Reducer
  **************************************************************/
 
-const initialState = {}
+const startDate = localGet('startDate') || moment().subtract(6, 'days').toISOString()
+const initialState = Object.assign({
+  startDate,
+  scrollY: window.scrollY,
+  windowHeight: window.innerHeight,
+}, localGet('schemaVersion') === 2 ? {
+  rows: localGet('rows'),
+  settings: localGet('settings'),
+  schemaVersion: localGet('schemasVersion')
+} : migrate1to2({
+  decayDays: localGet('decayDays'),
+  night: localGet('night'),
+  showCheckins: localGet('showCheckins'),
+  showFadedToday: localGet('showFadedToday'),
+  startDate,
+  // start the tutorial if the user has not checked in yet
+  tutorial: !localGet('lastUpdated'),
+  zones: localGet('zones') || defaultRows
+}))
 
 const appReducer = (state = initialState, action) => {
   console.log('DISPATCH', action)
@@ -92,17 +110,31 @@ const appReducer = (state = initialState, action) => {
     case 'SYNC':
       sync(action.key, action.value, action.local)
       return state
+    case 'SCROLL':
+      return Object.assign({}, state, { scrollY: action.scrollY })
+    case 'RESIZE':
+      return Object.assign({}, state, { innerHeight: action.innerHeight })
+    case 'ESCAPE':
+      return Object.assign({}, state, {
+        noteEdit: null,
+        noteEditReady: false,
+        tutorial: false
+      })
+    case 'TOGGLE_SETTINGS':
+      return Object.assign({}, state, { showSettings: !state.showSettings })
+    case 'TOUCH':
+      return Object.assign({}, state, { touch: true })
+    case 'TUTORIAL':
+      return Object.assign({}, state, {
+        tutorial: action.value,
+        showSettings: state.showSettings && !action.value
+      })
     default:
       return state
   }
 }
 
 const store = createStore(appReducer)
-
-// Set to offline mode in 5 seconds. Cancelled with successful login.
-const offlineTimer = window.setTimeout(() => {
-  store.dispatch({ type: 'SYNC', key: 'offline', local: true })
-}, 5000)
 
 // check if user is logged in
 if (firebase) {
@@ -158,6 +190,7 @@ if (firebase) {
     // load Firebase data
     userRef.on('value', snapshot => {
       const value = snapshot.val()
+      const state = store.getState()
 
       if (value) {
 
@@ -201,8 +234,8 @@ if (firebase) {
           console.info('migrating firebase zones')
           store.dispatch({ type: 'SYNC', key: 'zones', value: value.zones, local: true })
 
-          store.dispatch({ type: 'SYNC', key: 'rows', value: this.state.rows, local: false })
-          store.dispatch({ type: 'SYNC', key: 'settings', value: this.state.settings, local: false })
+          store.dispatch({ type: 'SYNC', key: 'rows', value: state.rows, local: false })
+          store.dispatch({ type: 'SYNC', key: 'settings', value: state.settings, local: false })
           store.dispatch({ type: 'SYNC', key: 'schemaVersion', value: 2, local: false })
         }
 
@@ -222,6 +255,8 @@ if (firebase) {
 // save to state, localStorage, and Firebase
 const sync = (key, value, localOnly) => {
 
+  const state = store.getState()
+
   if (key === 'rows' && !value) {
     throw new Error('Attempt to delete rows')
   }
@@ -239,11 +274,11 @@ const sync = (key, value, localOnly) => {
         localSet('lastUpdated', Date.now())
       }
 
-      store.getState().userRef.update(
+      state.userRef.update(
         // if syncing rows, set the start date and lastUpdated
         key === 'rows' ? {
           rows: value,
-          startDate: this.state.startDate,
+          startDate: state.startDate,
           lastUpdated: Date.now()
         }
         // otherwise just set the value
@@ -252,6 +287,40 @@ const sync = (key, value, localOnly) => {
     }
   })
 }
+
+/**************************************************************
+ * Window Events
+ **************************************************************/
+
+// Set to offline mode in 5 seconds. Cancelled with successful login.
+const offlineTimer = window.setTimeout(() => {
+  store.dispatch({ type: 'SYNC', key: 'offline', local: true })
+}, 5000)
+
+// update scroll for fixing position:fixed controls
+window.addEventListener('scroll', () => {
+  store.dispatch({ type: 'SCROLL', scrollY: window.scrollY })
+})
+
+// update scroll for fixing position:fixed controls
+window.addEventListener('resize', () => {
+  // NOTE: window.innerHeight doesn't update properly in the Chrome mobile simulator when switching orientation
+  store.dispatch({ type: 'RESIZE', windowHeight: window.innerHeight })
+})
+
+// keyboard shortcuts
+window.addEventListener('keydown', e => {
+  // close all popups if the escape key OR Cmd+Enter OR Control+Enter is hit
+  if (e.keyCode === 27 || (e.keyCode === 13 && e.metaKey)) {
+    store.dispatch({ type: 'ESCAPE' })
+  }
+})
+
+window.addEventListener('mousemove', () => {
+  if (!store.getState().disableClick) {
+    store.dispatch({ type: 'DISABLE_CLICK', value: true })
+  }
+})
 
 /**************************************************************
  * Helper functions
@@ -402,36 +471,6 @@ class AppComponent extends Component {
       zones: localGet('zones') || defaultRows
     }))
 
-    // update scroll for fixing position:fixed controls
-    window.addEventListener('scroll', () => {
-      this.setState({ scrollY: window.scrollY })
-    })
-
-    // update scroll for fixing position:fixed controls
-    window.addEventListener('resize', () => {
-      // NOTE: window.innerHeight doesn't update properly in the Chrome mobile simulator when switching orientation
-      this.setState({ windowHeight: window.innerHeight })
-    })
-
-    // keyboard shortcuts
-    window.addEventListener('keydown', e => {
-      // close all popups if the escape key OR Cmd+Enter OR Control+Enter is hit
-      if (e.keyCode === 27 || (e.keyCode === 13 && e.metaKey)) {
-        this.setState({
-          noteEdit: null,
-          noteEditReady: false,
-          tutorial: false
-        })
-      }
-    })
-
-    window.addEventListener('mousemove', () => {
-      if (!this.state.disableClick) {
-        this.setState({ disableClick: true })
-      }
-    })
-
-    this.toggleSettings = this.toggleSettings.bind(this)
     this.render = this.render.bind(this)
     this.addRow = this.addRow.bind(this)
     this.editNote = this.editNote.bind(this)
@@ -441,11 +480,6 @@ class AppComponent extends Component {
   /**************************************************************
    * State Change
    **************************************************************/
-
-  // state only
-  toggleSettings() {
-    this.setState({ showSettings: !this.state.showSettings })
-  }
 
   // toggle the state of a checkin
   changeState(prevCheckins, decay, c, i) {
@@ -596,14 +630,13 @@ class AppComponent extends Component {
     const expandedRows = expandRows(this.state.rows, this.state.startDate, this.state.settings.decayDays)
 
     return <div
-      className={'app' +
-        (this.state.showSettings ? ' settings-active' : '')}
+      className={'app' + (this.state.showSettings ? ' settings-active' : '')}
       // keep track of touch devices so that we can disable duplicate touch/mousedown events
-      onTouchStart={() => this.setState({ touch: true })}
+      onTouchStart={() => store.dispatch({ type: 'TOUCH' })}
     >
 
       { // tutorial
-        this.state.tutorial ? <div className='popup-container tutorial-container' onClick={() => this.setState({ tutorial: false })}>
+        this.state.tutorial ? <div className='popup-container tutorial-container' onClick={() => store.dispatch({ type: 'TUTORIAL', value: false })}>
           <div className='popup tutorial-popup'>
             <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
             <p className='tutorial-text'>
@@ -619,7 +652,7 @@ class AppComponent extends Component {
           <p className='note-label'>{this.state.noteEdit.z.label}</p>
           <p className='note-date'>{moment(this.state.startDate).add(this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1, 'days').format('dddd, MMMM Do')}</p>
           <textarea className='note-text' onInput={(e) => this.editNote(this.state.noteEdit.zi, this.state.noteEdit.ci, e.target.value)} defaultValue={this.state.noteEdit.z.notes && this.state.noteEdit.z.notes[this.state.noteEdit.z.checkins.length - this.state.noteEdit.ci - 1]}></textarea>
-          <a className='button note-button' onClick={this.state.noteEditReady ? () => this.setState({ noteEdit: null, noteEditReady: false }) : null}>Close</a>
+          <a className='button note-button' onClick={this.state.noteEditReady ? () => store.dispatch({ type: 'ESCAPE' }) : null}>Close</a>
         </div>
       </div> : null}
 
@@ -645,7 +678,7 @@ class AppComponent extends Component {
                 document.body.classList[!this.state.settings.night ? 'add' : 'remove']('night')
                 this.sync('night', !this.state.settings.night, true)
               }} /><br />
-              <a className='settings-showintro text-small' onClick={() => this.setState({ tutorial: true, showSettings: false })}>Show Intro</a><br/>
+              <a className='settings-showintro text-small' onClick={() => store.dispatch({ type: 'TUTORIAL', value: true })}>Show Intro</a><br/>
               <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
               <hr/>
               <div className='text-small'>
@@ -656,7 +689,7 @@ class AppComponent extends Component {
               <span className='dim'>Version: </span>{pkg.version}
               </div>
             </span> : null}
-            <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={this.toggleSettings}>⚙️</span>
+            <span role='img' aria-label='settings' className={'settings-option' + (this.state.showSettings ? ' active' : '')} onClick={() => /*TODO*/store.dispatch({ type: 'TOGGLE_SETTINGS' })}>⚙️</span>
           </div>
 
           <div className='gradient'></div>
