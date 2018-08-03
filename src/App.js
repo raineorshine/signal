@@ -151,8 +151,8 @@ const appReducer = (state = initialState, action) => {
     case 'DISABLE_CLICK':
       return Object.assign({}, state, { disableClick: action.value })
     case 'FIREBASE_CONNECTED':
-      const { offline, userRef, user } = action
-      return Object.assign({}, state, { offline, userRef, user })
+      const { userRef, user } = action
+      return Object.assign({}, state, { offline: false, userRef, user })
     case 'OFFLINE':
       return Object.assign({}, state, { offline: action.value })
     case 'SYNC':
@@ -202,7 +202,6 @@ if (firebase) {
     const userRef = firebase.database().ref('users/' + user.uid)
     store.dispatch({
       type: 'FIREBASE_CONNECTED',
-      offline: false,
       userRef,
       user
     })
@@ -616,7 +615,7 @@ class AppComponentOld extends Component {
   }
  }
 
-const AppComponent = connect()(() => {
+const AppComponent = connect()(({ dispatch }) => {
 
   const state = store.getState()
 
@@ -630,11 +629,11 @@ const AppComponent = connect()(() => {
   return <div
     className={'app' + (state.showSettings ? ' settings-active' : '')}
     // keep track of touch devices so that we can disable duplicate touch/mousedown events
-    onTouchStart={() => state.dispatch({ type: 'TOUCH' })}
+    onTouchStart={() => dispatch({ type: 'TOUCH' })}
   >
 
     { // tutorial
-      state.tutorial ? <div className='popup-container tutorial-container' onClick={() => state.dispatch({ type: 'TUTORIAL', value: false })}>
+      state.tutorial ? <div className='popup-container tutorial-container' onClick={() => dispatch({ type: 'TUTORIAL', value: false })}>
         <div className='popup tutorial-popup'>
           <img className='tutorial-image' alt='screenshot1' src={tutorialImg}/>
           <p className='tutorial-text'>
@@ -650,7 +649,7 @@ const AppComponent = connect()(() => {
         <p className='note-label'>{state.noteEdit.z.label}</p>
         <p className='note-date'>{moment(state.startDate).add(state.noteEdit.z.checkins.length - state.noteEdit.ci - 1, 'days').format('dddd, MMMM Do')}</p>
         <textarea className='note-text' onInput={(e) => this.editNote(state.noteEdit.zi, state.noteEdit.ci, e.target.value)} defaultValue={state.noteEdit.z.notes && state.noteEdit.z.notes[state.noteEdit.z.checkins.length - state.noteEdit.ci - 1]}></textarea>
-        <a className='button note-button' onClick={state.noteEditReady ? () => state.dispatch({ type: 'ESCAPE' }) : null}>Close</a>
+        <a className='button note-button' onClick={state.noteEditReady ? () => dispatch({ type: 'ESCAPE' }) : null}>Close</a>
       </div>
     </div> : null}
 
@@ -663,31 +662,8 @@ const AppComponent = connect()(() => {
           : null}
         </div>
         <div className='top-options'>
-          {state.showSettings ? <span className='settings-content'>
-            Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
-              <input key={day} type='checkbox' checked={state.settings.decayDays[day]} onChange={() => {
-                state.settings.decayDays.splice(day, 1, !state.settings.decayDays[day])
-                return this.sync('decayDays', state.settings.decayDays)}
-              }/>
-            )}</span><br/>
-            Show today's checkins: <input type='checkbox' disabled={state.settings.showCheckins} checked={state.settings.showFadedToday} onChange={() => this.sync('showFadedToday', !state.settings.showFadedToday)} /><br/>
-            Show all checkins: <input type='checkbox' checked={state.settings.showCheckins} onChange={() => this.sync('showCheckins', !state.settings.showCheckins)} /><br/>
-            Night Mode 🌙: <input type='checkbox' checked={state.settings.night} onChange={() => {
-              document.body.classList[!state.settings.night ? 'add' : 'remove']('night')
-              this.sync('night', !state.settings.night, true)
-            }} /><br />
-            <a className='settings-showintro text-small' onClick={() => state.dispatch({ type: 'TUTORIAL', value: true })}>Show Intro</a><br/>
-            <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
-            <hr/>
-            <div className='text-small'>
-            {state.user ? <span>
-              <span className='dim'>Logged in as: </span>{state.user.email}<br/>
-              <span className='dim'>User ID: </span><span className='mono'>{state.user.uid}</span><br/>
-            </span> : null}
-            <span className='dim'>Version: </span>{pkg.version}
-            </div>
-          </span> : null}
-          <span role='img' aria-label='settings' className={'settings-option' + (state.showSettings ? ' active' : '')} onClick={() => /*TODO*/state.dispatch({ type: 'TOGGLE_SETTINGS' })}>⚙️</span>
+          {state.showSettings ? <Settings/> : null}
+          <span role='img' aria-label='settings' className={'settings-option' + (state.showSettings ? ' active' : '')} onClick={() => /*TODO*/dispatch({ type: 'TOGGLE_SETTINGS' })}>⚙️</span>
         </div>
 
         <div className='gradient'></div>
@@ -714,6 +690,33 @@ const AppComponent = connect()(() => {
     }
   </div>
 })
+
+const Settings = connect()(state =>
+  <span className='settings-content'>
+    Decay (Mon-Sun): <span className='nowrap'>{[1, 2, 3, 4, 5, 6, 0].map(day =>
+      <input key={day} type='checkbox' checked={state.settings.decayDays[day]} onChange={() => {
+        state.settings.decayDays.splice(day, 1, !state.settings.decayDays[day])
+        return this.sync('decayDays', state.settings.decayDays)}
+      }/>
+    )}</span><br/>
+    Show today's checkins: <input type='checkbox' disabled={state.settings.showCheckins} checked={state.settings.showFadedToday} onChange={() => this.sync('showFadedToday', !state.settings.showFadedToday)} /><br/>
+    Show all checkins: <input type='checkbox' checked={state.settings.showCheckins} onChange={() => this.sync('showCheckins', !state.settings.showCheckins)} /><br/>
+    Night Mode 🌙: <input type='checkbox' checked={state.settings.night} onChange={() => {
+      document.body.classList[!state.settings.night ? 'add' : 'remove']('night')
+      this.sync('night', !state.settings.night, true)
+    }} /><br />
+    <a className='settings-showintro text-small' onClick={() => state.dispatch({ type: 'TUTORIAL', value: true })}>Show Intro</a><br/>
+    <a className='settings-logout text-small' onClick={() => firebase.auth().signOut()}>Log Out</a><br/>
+    <hr/>
+    <div className='text-small'>
+    {state.user ? <span>
+      <span className='dim'>Logged in as: </span>{state.user.email}<br/>
+      <span className='dim'>User ID: </span><span className='mono'>{state.user.uid}</span><br/>
+    </span> : null}
+    <span className='dim'>Version: </span>{pkg.version}
+    </div>
+  </span>
+)
 
 const Row = connect()(({ disableClick, settings, scrollY, totalRows, touch, windowHeight, row, i, dispatch }) => {
   const contentHeight = totalRows * 50
