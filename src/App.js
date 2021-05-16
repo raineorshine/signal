@@ -66,6 +66,10 @@ if (!localGet('decayDays')) {
   localSet('decayDays', JSON.stringify([true, true, true, true, true, true, true]))
 }
 
+if (!localGet('startDate')) {
+  localSet('startDate', moment().subtract(6, 'days').toISOString())
+}
+
 // manually add/remove class to body since it's outside the target element of render
 document.body.classList[localGet('night') === 'true' ? 'add' : 'remove']('night')
 
@@ -194,55 +198,50 @@ class App extends Component {
       localStorage.latestUid = user.uid
       if (!localGet('zones')) {
         localSet('zones', localGetTemp('zones'))
-        localSet('showFadedToday', localGetTemp('zones'))
-        localSet('showCheckins', localGetTemp('zones'))
+        localSet('showFadedToday', localGetTemp('showFadedToday'))
+        localSet('showCheckins', localGetTemp('showCheckins'))
         localSet('decayDays', localGetTemp('decayDays'))
-        localSet('night', localGetTemp('zones'))
-        localSet('startDate', localGetTemp('zones'))
+        localSet('night', localGetTemp('night'))
+        localSet('startDate', localGetTemp('startDate'))
       }
 
       // load Firebase data
       userRef.on('value', snapshot => {
         const value = snapshot.val()
+        if (!value) return
 
-        if (value) {
+        // update user information
+        userRef.update({
+          name: user.displayName,
+          email: user.email
+        })
 
-          // update user information
-          userRef.update({
-            name: user.displayName,
-            email: user.email
-          })
-
-          if (value.showCheckins) {
-            this.sync('showCheckins', value.showCheckins, true)
-          }
-
-          if (value.night) {
-            this.sync('night', value.night, true)
-          }
-
-          if (value.showFadedToday) {
-            this.sync('showFadedToday', value.showFadedToday, true)
-          }
-
-          if (value.decayDays) {
-            this.sync('decayDays', value.decayDays, true)
-          }
-
-          // save start date or legacy start date
-          const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
-          this.sync('startDate', startDate, true)
-
-          // if Firebase data is newer than stored data, update localStorage
-          if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
-            this.sync('zones', this.fill(value.zones, startDate), true)
-          }
-          // do nothing if Firebase data is older than stored data
+        if (value.showCheckins) {
+          this.sync('showCheckins', value.showCheckins, true)
         }
-        // if no Firebase data, initialize with defaults
-        else {
-          this.sync('zones', null, true)
+
+        if (value.night) {
+          this.sync('night', value.night, true)
         }
+
+        if (value.showFadedToday) {
+          this.sync('showFadedToday', value.showFadedToday, true)
+        }
+
+        if (value.decayDays) {
+          this.sync('decayDays', value.decayDays, true)
+        }
+
+        // save start date or legacy start date
+        const startDate = value.startDate || '2018-03-24T06:00:00.000Z'
+        this.sync('startDate', startDate, true)
+
+        // if Firebase data is newer than stored data, update localStorage
+        if (value.lastUpdated > (localGet('lastUpdated') || 0)) {
+          this.sync('zones', this.fill(value.zones, startDate), true)
+        }
+
+        // do nothing if Firebase data is older than stored data
       })
     })
 
