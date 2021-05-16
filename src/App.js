@@ -71,7 +71,7 @@ if (!localGet('startDate')) {
 }
 
 // manually add/remove class to body since it's outside the target element of render
-document.body.classList[localGet('night') === 'true' ? 'add' : 'remove']('night')
+document.body.classList[localGet('night') !== 'false' ? 'add' : 'remove']('night')
 
 /**************************************************************
  * Helper functions
@@ -107,7 +107,7 @@ class App extends Component {
       showCheckins: localGet('showCheckins') === 'true',
       showFadedToday: localGet('showFadedToday') === 'true',
       decayDays: JSON.parse(localGet('decayDays')),
-      night: localGet('night') === 'true',
+      night: localGet('night') !== 'false',
       scrollY: window.scrollY,
       windowHeight: window.innerHeight,
       // start the tutorial if the user has not checked in yet
@@ -220,12 +220,12 @@ class App extends Component {
           this.sync('showCheckins', value.showCheckins, true)
         }
 
-        if (value.night) {
-          this.sync('night', value.night, true)
+        if (value.night === false) {
+          this.sync('night', false, false)
         }
 
         if (value.showFadedToday) {
-          this.sync('showFadedToday', value.showFadedToday, true)
+          this.sync('showFadedToday', true, true)
         }
 
         if (value.decayDays) {
@@ -535,7 +535,7 @@ class App extends Component {
               )}</span><br/>
               Show today's checkins: <input type='checkbox' disabled={this.state.showCheckins} checked={this.state.showFadedToday} onChange={() => this.sync('showFadedToday', !this.state.showFadedToday)} /><br/>
               Show all checkins: <input type='checkbox' checked={this.state.showCheckins} onChange={() => this.sync('showCheckins', !this.state.showCheckins)} /><br/>
-              Night Mode 🌙: <input type='checkbox' checked={this.state.night} onChange={() => {
+              Dark Theme: <input type='checkbox' checked={this.state.night} onChange={() => {
                 document.body.classList[!this.state.night ? 'add' : 'remove']('night')
                 this.sync('night', !this.state.night, true)
               }} /><br />
