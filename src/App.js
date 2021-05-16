@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { Component, useState } from 'react'
 import './App.css'
 import moment from 'moment'
 import throttle from 'lodash.throttle'
@@ -656,12 +656,23 @@ class App extends Component {
 }
 
 /** Renders column headers that toggle between date and day of the week. */
-const Header = ({ zones, startDate }) => <div className='dates'>
-  <div className='box dates-mask'></div>
-  {(zones[0].checkins || []).map((checkin, ci) => {
-    const date = checkinDate(zones, startDate, ci)
-    return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
-  })}
-</div>
+const Header = ({ zones, startDate }) => {
+
+  const [showDays, setShowDays] = useState(false)
+
+  return <div className='dates'>
+    <div className='box dates-mask'></div>
+    {(zones[0].checkins || []).map((checkin, ci) => {
+      const date = checkinDate(zones, startDate, ci)
+      return <span 
+        key={ci} 
+        title={date.format('dddd, MMMM Do')}
+        className='box date' 
+        style={{ cursor: 'pointer' }}
+        onClick={() => { setShowDays(!showDays) }}
+      >{showDays ? date.format('ddd') : date.format('D')}</span>
+    })}
+  </div>
+}
 
 export default App
