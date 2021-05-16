@@ -18,12 +18,13 @@ if (typeof localStorage === 'undefined') {
 // firebase
 if (firebase.apps.length === 0) {
   firebase.initializeApp({
-    apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
-    authDomain: "zonesofprep.firebaseapp.com",
-    databaseURL: "https://zonesofprep.firebaseio.com",
-    projectId: "zonesofprep",
-    storageBucket: "zonesofprep.appspot.com",
-    messagingSenderId: "918887966885"
+    apiKey: "AIzaSyAG6c0DwOP7EUVq2CH658St9d5xgaCF5IE",
+    authDomain: "signal-habit-tracker.firebaseapp.com",
+    databaseURL: "https://signal-habit-tracker-default-rtdb.firebaseio.com",
+    projectId: "signal-habit-tracker",
+    storageBucket: "signal-habit-tracker.appspot.com",
+    messagingSenderId: "53624320856",
+    appId: "1:53624320856:web:858766f3fe3de7fcbd2b2d"
   })
 }
 window.__DEBUG = {}
@@ -35,7 +36,7 @@ window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
 const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
-// raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/zonesofprep/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
+// raineorshine@gmail.com test data: https://console.firebase.google.com/u/0/project/signal-habit-tracker/database/zonesofprep/data/users/T9FGz1flWIf1sQU5B5Qf3q6d6Oy1
 const defaultZones = JSON.stringify([{
   checkins: [STATE_NULL],
   label: '💤'
