@@ -16,14 +16,16 @@ if (typeof localStorage === 'undefined') {
 }
 
 // firebase
-firebase.initializeApp({
-  apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
-  authDomain: "zonesofprep.firebaseapp.com",
-  databaseURL: "https://zonesofprep.firebaseio.com",
-  projectId: "zonesofprep",
-  storageBucket: "zonesofprep.appspot.com",
-  messagingSenderId: "918887966885"
-})
+if (firebase.apps.length === 0) {
+  firebase.initializeApp({
+    apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
+    authDomain: "zonesofprep.firebaseapp.com",
+    databaseURL: "https://zonesofprep.firebaseio.com",
+    projectId: "zonesofprep",
+    storageBucket: "zonesofprep.appspot.com",
+    messagingSenderId: "918887966885"
+  })
+}
 window.__DEBUG = {}
 window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
