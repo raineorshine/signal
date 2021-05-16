@@ -1,23 +1,33 @@
 import React, { Component } from 'react'
 import './App.css'
-import * as moment from 'moment'
-import * as throttle from 'lodash.throttle'
+import moment from 'moment'
+import throttle from 'lodash.throttle'
 import ClickNHold from 'react-click-n-hold'
 import * as pkg from '../package.json'
 import tutorialImg from './tutorial.png'
+import firebase from 'firebase'
 
-/**************************************************************
- * Setup
- **************************************************************/
+// TODO: fix JSDOM
+// mock localStorage
+if (typeof localStorage === 'undefined') {
+  window.localStorage = {}
+}
 
-const firebaseConfig = {
+// firebase
+firebase.initializeApp({
   apiKey: "AIzaSyA58BMqwEAw12sgI4guZbsDdVZ7yoXwDqI",
   authDomain: "zonesofprep.firebaseapp.com",
   databaseURL: "https://zonesofprep.firebaseio.com",
   projectId: "zonesofprep",
   storageBucket: "zonesofprep.appspot.com",
   messagingSenderId: "918887966885"
-}
+})
+window.__DEBUG = {}
+window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
+
+/**************************************************************
+ * Setup
+ **************************************************************/
 
 const [STATE_RED, STATE_YELLOW, STATE_GREEN, STATE_NULL] = [-1,0,1,2]
 
@@ -32,12 +42,6 @@ const defaultZones = JSON.stringify([{
   checkins: [STATE_NULL],
   label: '👟'
 }])
-
-// firebase init
-const firebase = window.firebase
-firebase.initializeApp(firebaseConfig)
-window.__DEBUG = {}
-window.__DEBUG.signout = firebase.auth().signOut.bind(firebase.auth())
 
 const localGet = key => localStorage[localStorage.latestUid + '.' + key]
 const localGetTemp = key => localStorage['temp.' + key]
