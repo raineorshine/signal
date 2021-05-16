@@ -90,6 +90,12 @@ const same = list => list.reduce((prev, next) => prev === next ? next : false) !
 /** Returns true if none of the given checkins have a manual checkin. */
 const noManualCheckins = (checkinsInDecayZone, zone) => checkinsInDecayZone.every((c, ci) => !(zone.manualCheckins && zone.manualCheckins[zone.checkins.length - ci + 1]))
 
+/* Gets the date of a checkin */
+const checkinDate = (zones, startDate, ci) => {
+  const sampleCheckins = zones[0].checkins || []
+  return moment(startDate).add(sampleCheckins.length - ci - 1, 'days')
+}
+
 /**************************************************************
  * App
  **************************************************************/
@@ -249,7 +255,6 @@ class App extends Component {
     this.sync = this.sync.bind(this)
     this.zone = this.zone.bind(this)
     this.checkin = this.checkin.bind(this)
-    this.dates = this.dates.bind(this)
     this.render = this.render.bind(this)
     this.addColumn = this.addColumn.bind(this)
     this.addRow = this.addRow.bind(this)
@@ -260,12 +265,6 @@ class App extends Component {
   /**************************************************************
    * Stateful Helpers
    **************************************************************/
-
-  /* Gets the date of a checkin */
-  checkinDate(ci) {
-    const sampleCheckins = this.state.zones[0].checkins || []
-    return moment(this.state.startDate).add(sampleCheckins.length - ci - 1, 'days')
-  }
 
   /** Return a new checkin for a given zone with potential decay */
   checkinWithDecay(zone, ci=0) {
@@ -278,7 +277,7 @@ class App extends Component {
     }
 
     return zone.decay && // zone has a decay
-      this.state.decayDays[(this.checkinDate(ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
+      this.state.decayDays[(this.checkinDate(this.state.zones, this.state.startDate, ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
       zone.checkins[ci] > STATE_RED && // can't decay past red
       readyToDecay() // do last for efficiency
       ? demote(zone.checkins[ci])
@@ -557,7 +556,7 @@ class App extends Component {
           <div className='desktop-mask'></div>
           <div className='content' style={{ marginTop }}>
             {this.state.zones ? <div>
-                {this.dates()}
+                <Header zones={this.state.zones} startDate={this.state.startDate} />
                 <div className='habits'>
                   {this.state.zones.map(this.zone)}
                   { // move col-options to settlings if enough habits and two weeks of checkins
@@ -654,16 +653,15 @@ class App extends Component {
       {hasNote ? <span className='note-marker'></span> : null}
     </span></ClickNHold>
   }
-
-  dates() {
-    return <div className='dates'>
-      <div className='box dates-mask'></div>
-      {(this.state.zones[0].checkins || []).map((checkin, ci) => {
-        const date = this.checkinDate(ci)
-        return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
-      })}
-    </div>
-  }
 }
+
+/** Renders column headers that toggle between date and day of the week. */
+const Header = ({ zones, startDate }) => <div className='dates'>
+  <div className='box dates-mask'></div>
+  {(zones[0].checkins || []).map((checkin, ci) => {
+    const date = checkinDate(zones, startDate, ci)
+    return <span key={ci} className='box date' title={date.format('dddd, M/D')}>{date.format('D')}</span>
+  })}
+</div>
 
 export default App
