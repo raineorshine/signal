@@ -247,18 +247,18 @@ a.settings-logout {
   margin-right: 5px;
 }
 
-.zones {
+.habits {
   position: relative;
   padding-bottom: 70px; /* room for col-options. */
 }
 
 @media only screen and (min-width: 480px) {
-  .zones {
+  .habits {
     margin-left: 20%;
   }
 }
 
-.zone-label {
+.habit-label {
   line-height: 50px;
   font-size: 32px;
   cursor: pointer;

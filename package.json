@@ -1,5 +1,5 @@
 {
-  "name": "zones",
+  "name": "signal",
   "version": "32.0.0",
   "private": true,
   "dependencies": {
@@ -14,7 +14,6 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "deploy": "npm version major && npm run build && firebase deploy",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "test": "react-scripts test --env=jsdom"
   }
 }

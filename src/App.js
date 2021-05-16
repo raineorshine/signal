@@ -553,7 +553,7 @@ class App extends Component {
           <div className='content' style={{ marginTop }}>
             {this.state.zones ? <div>
                 {this.dates()}
-                <div className='zones'>
+                <div className='habits'>
                   {this.state.zones.map(this.zone)}
                   { // move col-options to settlings if enough habits and two weeks of checkins
                     this.state.showSettings || this.state.zones.length < 5 || this.state.zones[0].checkins.length <= 14 ? <div className='left-controls col-options' style={{ top: marginTop + 65 + this.state.zones.length * 50 - this.state.scrollY }}>
@@ -588,7 +588,7 @@ class App extends Component {
           }
           <span className='box option option-row' onClick={() => this.removeRow(z)}>-</span>
         </span>
-        <span className='box zone-label' onClick={() => this.editRow(z)}>{z.label}</span>
+        <span className='box habit-label' onClick={() => this.editRow(z)}>{z.label}</span>
       </span>
       <span className='checkins'>{z.checkins
         ? z.checkins.map((c, ci) => this.checkin(c, ci, z, zi))
