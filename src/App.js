@@ -666,10 +666,10 @@ const Header = ({ zones, startDate }) => {
     <div className='box dates-mask'></div>
     {(zones[0].checkins || []).map((checkin, ci) => {
       const date = checkinDate(zones, startDate, ci)
-      return <span 
-        key={ci} 
+      return <span
+        key={ci}
         title={date.format('dddd, MMMM Do')}
-        className='box date' 
+        className='box date'
         style={{ cursor: 'pointer' }}
         onClick={() => { setShowDays(!showDays) }}
       >{showDays ? date.format('ddd') : date.format('D')}</span>
