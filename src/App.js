@@ -280,7 +280,7 @@ class App extends Component {
     }
 
     return zone.decay && // zone has a decay
-      this.state.decayDays[(this.checkinDate(this.state.zones, this.state.startDate, ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
+      this.state.decayDays[(checkinDate(this.state.zones, this.state.startDate, ci).day() + 1) % 7] && // can decay on this day; add 1 since ci refers to the PREVIOUS day, i.e. if we don't want to decay on Sat/Sun then we need ci to refer to Fri/Sat
       zone.checkins[ci] > STATE_RED && // can't decay past red
       readyToDecay() // do last for efficiency
       ? demote(zone.checkins[ci])
